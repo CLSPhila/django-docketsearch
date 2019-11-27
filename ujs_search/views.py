@@ -8,7 +8,6 @@ from django.conf import settings
 from .serializers import NameSearchSerializer
 from .services import searchujs
 
-
 logger = logging.getLogger(__name__)
 
 class SearchName(APIView):
