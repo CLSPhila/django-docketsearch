@@ -1,4 +1,5 @@
 from .UJSSearch import UJSSearch
+from .SearchResult import SearchResult
 from lxml import etree
 import lxml.html
 import re
@@ -45,6 +46,9 @@ class CPSearch(UJSSearch):
         # Collect the columns of the table of results.
         docket_numbers = results_panel.xpath(".//span[contains(@id, 'docketNumberLabel')]")
         captions = results_panel.xpath(".//span[contains(@id, 'shortCaptionLabel')]")
+        filing_dates = results_panel.xpath(
+            ".//span[contains(@id, 'filingDateLabel')]"
+        )
         case_statuses = results_panel.xpath(".//span[contains(@id, 'caseStatusNameLabel')]")
         otns = results_panel.xpath(".//span[contains(@id, 'otnLabel')]")
         dobs = results_panel.xpath(".//span[contains(@id, 'DobLabel')]")
@@ -57,23 +61,25 @@ class CPSearch(UJSSearch):
         # they get zipped up properly.
         assert len(set(map(len, (
             docket_numbers, docket_sheet_urls, summary_urls,
-            captions, case_statuses, dobs)))) == 1
+            captions, filing_dates, case_statuses, dobs)))) == 1
 
         results =  [
-            {
-                "docket_number": dn.text,
-                "docket_sheet_url": ds.get("href"),
-                "summary_url": su.get("href"),
-                "caption": cp.text,
-                "case_status": cs.text,
-                "otn": otn.text,
-                "dob": dob.text,
-            }
-            for dn, ds, su, cp, cs, otn, dob in zip(
+            SearchResult(
+                docket_number = dn.text,
+                docket_sheet_url = ds.get("href"),
+                summary_url = su.get("href"),
+                caption = cp.text,
+                filing_date = fd.text,
+                case_status = cs.text,
+                otn = otn.text,
+                dob = dob.text,
+            )
+            for dn, ds, su, cp, fd, cs, otn, dob in zip(
                 docket_numbers,
                 docket_sheet_urls,
                 summary_urls,
                 captions,
+                filing_dates,
                 case_statuses,
                 otns,
                 dobs

@@ -6,6 +6,7 @@ from datetime import datetime, date
 import logging
 import time
 import requests
+from dataclasses import asdict
 import os
 
 logger = logging.getLogger(__name__)
@@ -50,8 +51,8 @@ def test_cp_search(monkeypatch):
     assert len(results) > 0 
     try:
         for r in results:
-            r["docket_number"]
-    except KeyError:
+            r.docket_number
+    except AttributeError:
         pytest.raises("Search Results missing docket number.")
 
 
@@ -74,7 +75,6 @@ def test_cp_search_no_results(monkeypatch):
 
 def test_mdj_search(monkeypatch):
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
-
     if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
         logger.info("Monkeypatching network calls.")
         monkeypatch.setattr(MDJSearch,"search_name", get_results)
@@ -92,12 +92,18 @@ def test_mdj_search(monkeypatch):
         last_name=last_name, 
         first_name=first_name, 
         dob=dob)
+
+    
     assert len(results) > 0
     try:
         for r in results:
-            r["docket_number"]
+            r.docket_number
     except KeyError:
         pytest.raises("Search Results missing docket number.")
+
+    for r in results:
+        for k, v in asdict(r).items():
+            assert v.strip() != ""
 
 
 def test_mdj_search_no_results(monkeypatch):

@@ -1,4 +1,5 @@
 from .UJSSearch import UJSSearch
+from .SearchResult import SearchResult
 from lxml import etree
 import lxml.html
 import re
@@ -45,19 +46,24 @@ class MDJSearch(UJSSearch):
             return []
         assert len(results_panel) == 1, "Did not find one and only one results panel."
         results_panel = results_panel[0]
-
         # Collect the columns of the table of results.
         docket_numbers = results_panel.xpath(
         ".//td[2]")
         captions = results_panel.xpath(
-            ".//td[4]")
-        case_statuses = results_panel.xpath(
-            ".//td[7]")
-        otns = results_panel.xpath(
-            ".//td[9]")
-        dobs = results_panel.xpath(
-            ".//td[12]"
+            ".//td[4]/span")
+        filing_dates = results_panel.xpath(
+            ".//td[5]"
         )
+        case_statuses = results_panel.xpath(
+            ".//td[7]/span")
+        otns = results_panel.xpath(
+            ".//td[9]/span")
+        dobs = results_panel.xpath(
+            ".//td[12]//span"
+        )
+
+
+
         docket_sheet_urls = []
         for docket in docket_numbers:
             try:
@@ -84,23 +90,25 @@ class MDJSearch(UJSSearch):
         # they get zipped up properly.
         assert len(set(map(len, (
             docket_numbers, docket_sheet_urls, summary_urls,
-            captions, case_statuses)))) == 1
+            captions, filing_dates, case_statuses)))) == 1
 
         results = [
-            {
-                "docket_number": dn.text,
-                "docket_sheet_url": ds,
-                "summary_url": su,
-                "caption": cp.text,
-                "case_status": cs.text,
-                "otn": otn.text,
-                "dob": dob.text
-            }
-            for dn, ds, su, cp, cs, otn, dob in zip(
+            SearchResult(
+                docket_number = dn.text,
+                docket_sheet_url = ds,
+                summary_url = su,
+                caption = cp.text,
+                filing_date = fd.text,
+                case_status = cs.text,
+                otn = otn.text,
+                dob = dob.text
+            )
+            for dn, ds, su, cp, fd, cs, otn, dob in zip(
                 docket_numbers,
                 docket_sheet_urls,
                 summary_urls,
                 captions,
+                filing_dates,
                 case_statuses,
                 otns,
                 dobs,
