@@ -15,7 +15,7 @@ def setup_view(view, request, *args, **kwargs):
     return view
 
 
-def test_search_name(monkeypatch, setup_tests, api_rf, name_search_data, mock_search_results):
+def test_search_name(monkeypatch, setup_tests, api_rf, name_search_data):
     logger.info(setup_tests)
     req = api_rf.post(
         "/search/name",
@@ -29,3 +29,4 @@ def test_search_name(monkeypatch, setup_tests, api_rf, name_search_data, mock_se
     v = setup_view(SearchName(), req)
     resp = v.post(req)
     assert resp.status_code == 200
+

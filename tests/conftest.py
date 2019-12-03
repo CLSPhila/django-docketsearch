@@ -47,10 +47,14 @@ def mock_search_results(monkeypatch):
 def setup_tests(monkeypatch, mock_search_results):
     """
     Setup the django app
+
+    Turns out there's nothing to do here, b/c pytest auto-sets up django, using the env var 'DJANGO_SETTINGS_MODULE'
+    
     """
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
-    django.setup()
-    return "Django is setup"
+    return "Django was set up by pytest-django."
+    #os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
+    #django.setup()
+    #return "Django is setup"
 
 
 @pytest.fixture

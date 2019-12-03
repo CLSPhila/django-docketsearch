@@ -8,3 +8,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "ujs_search",
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
+

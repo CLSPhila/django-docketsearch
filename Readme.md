@@ -6,10 +6,13 @@ A Django Rest Framework app that adds endpoints useful for searching the PA UJS 
 
 1. Add "ujs" to your INSTALLED_APPS setting like this::
 
+```
     INSTALLED_APPS = [
         ...
         'ujs_search',
     ]
+```
+
 
 2. Include the ujs_search URLconf in your project urls.py like this::
 
@@ -19,6 +22,18 @@ A Django Rest Framework app that adds endpoints useful for searching the PA UJS 
 ## Testing
 
 Test with `pytest --log-cli-level info` (include the switch to see helpful logging info)
+
+You'll need a `.env` file, something like:
+
+```
+DJANGO_SETTINGS_MODULE=tests.test_settings
+
+REAL_NETWORK_TESTS=False
+
+UJS_SEARCH_TEST_FNAME=Greasy
+UJS_SEARCH_TEST_LNAME=Spoon
+UJS_SEARCH_TEST_DOB=1950-05-05
+```
 
 ## Additional Information
 
