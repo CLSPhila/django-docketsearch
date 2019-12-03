@@ -1,6 +1,7 @@
 from rest_framework.response import Response 
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.views import APIView
+from rest_framework import generics
 from rest_framework import status
 import logging
 from . import appsettings
@@ -9,8 +10,11 @@ from .services import searchujs
 
 logger = logging.getLogger(__name__)
 
-class SearchName(APIView):
+#class SearchName(APIView):
+class SearchName(generics.CreateAPIView):
 
+    queryset = []
+    serializer_class = NameSearchSerializer
     permission_classes = appsettings.PERMISSION_CLASSES
 
     def post(self, request, *args, **kwargs):
