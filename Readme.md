@@ -7,6 +7,10 @@ A Django Rest Framework app that adds endpoints useful for searching the PA UJS 
 1. Add "ujs" to your INSTALLED_APPS setting like this::
 
 ```
+    
+    from rest_framework import permissions
+    UJS_SEARCH_PERMISSION_CLASSES = [permissions.IsAuthenticatedOrReadOnly]
+    
     INSTALLED_APPS = [
         ...
         'ujs_search',
