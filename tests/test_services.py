@@ -12,7 +12,7 @@ import os
 logger = logging.getLogger(__name__)
 
 
-def test_cp_search(monkeypatch, mock_search_results):
+def test_cp_search_name(monkeypatch, mock_search_results):
     first_name = os.environ.get("UJS_SEARCH_TEST_FNAME") or "Joe"
     last_name = os.environ.get("UJS_SEARCH_TEST_LNAME") or "Normal"
     dob = datetime.strptime(os.environ.get("UJS_SEARCH_TEST_DOB"), r"%Y-%m-%d") if \
@@ -30,7 +30,7 @@ def test_cp_search(monkeypatch, mock_search_results):
         pytest.raises("Search Results missing docket number.")
 
 
-def test_cp_search_no_results(monkeypatch):
+def test_cp_search_name_no_results(monkeypatch):
 
     def get_results(*args, **kwargs):
         return []
@@ -47,7 +47,7 @@ def test_cp_search_no_results(monkeypatch):
     assert len(results) == 0 
 
 
-def test_mdj_search(monkeypatch, mock_search_results):
+def test_mdj_search_name(monkeypatch, mock_search_results):
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
     first_name = os.environ.get("UJS_SEARCH_TEST_FNAME") or "Joe"
     last_name = os.environ.get("UJS_SEARCH_TEST_LNAME") or "Normal"
@@ -74,7 +74,7 @@ def test_mdj_search(monkeypatch, mock_search_results):
             assert v.strip() != ""
 
 
-def test_mdj_search_no_results(monkeypatch, mock_search_results):
+def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
 
     if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
