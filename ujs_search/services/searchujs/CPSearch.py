@@ -5,13 +5,16 @@ import lxml.html
 import re
 import time
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import date
 import asyncio
 import aiohttp
 import ssl
+from collections import namedtuple
 
 logger = logging.getLogger(__name__)
+
+DocketNumber = namedtuple('DocketNumber', 'court county dkt_type sequence year')
 
 async def fetch(session, sslctx, url):
     """
@@ -22,6 +25,13 @@ async def fetch(session, sslctx, url):
             return await response.text()
         else:
             return await response.text() 
+
+
+async def post(session, sslctx, url, data):
+    """
+    async method to post data to a url.
+    """
+    pass
 
 class CPSearch(UJSSearch):
     """
@@ -211,6 +221,27 @@ class CPSearch(UJSSearch):
 
         return results
 
+    def parse_docket_number(self, full_dn: str) -> DocketNumber:
+        """
+        Parse a CP Docket number into its component parts.
+
+        Args:
+            full_dn (str): A docket number, like CP-43-CR-0123456-2000
+
+        Returns:
+            A DocketNumber namedtuple of the components of the full docket number.
+        """
+        patt = re.compile(r"^(?P<court>CP|MC)-(?P<county>[0-9]{2})-(?P<dkt_type>CR|MD|SA|SU)-(?P<sequence>[0-9]{7})-(?P<year>[0-9]{4})")
+        matches = patt.match(full_dn)
+        if not matches:
+            raise ValueError(f"{full_dn} was not a correctly formatted docket number.")
+        return DocketNumber(
+            court = matches.group('court'),
+            county = matches.group('county'),
+            dkt_type = matches.group('dkt_type'),
+            sequence = matches.group('sequence'),
+            year = matches.group('year'),
+        )
 
     def get_docket_search_post_data(self, court, county, dkttype, docket_num, year, nonce, viewstate):
         """
@@ -275,7 +306,7 @@ class CPSearch(UJSSearch):
                 viewstate=viewstate
             )
 
-            search_results = await post(session, sslcontext, self.BASE_URL, self.)
+            search_results = await post(session, sslcontext, self.BASE_URL, search_data) 
 
             breakpoint()
             return []

@@ -96,6 +96,16 @@ def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
     assert len(results) == 0
 
 
+def test_parse_cp_docket_number():
+    cp_searcher = UJSSearchFactory.use_court("CP")
+    dn = "CP-12-CR-1234567-2000"
+    parsed = cp_searcher.parse_docket_number(dn)
+    assert parsed.court == "CP"
+    assert parsed.sequence == "1234567"
+
+    bad_dn = "CP-1234"
+    with pytest.raises(ValueError):
+        cp_searcher.parse_docket_number(bad_dn)
 
 def test_cp_search_docket(monkeypatch, mock_search_results):
     dn = os.environ["CP_SEARCH_DOCKET_TEST"]
