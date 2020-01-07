@@ -24,14 +24,21 @@ async def fetch(session, sslctx, url):
         if response.status == 200:
             return await response.text()
         else:
-            return await response.text() 
+            logger.error(f"GET {url} failed with {response.status}")
+            return ""
 
 
 async def post(session, sslctx, url, data):
     """
     async method to post data to a url.
     """
-    pass
+    async with session.post(url, ssl=sslctx, data=data) as response:
+        if response.status == 200:
+            return await response.text()
+        else:
+            logger.error(f"POST {url} failed with status {response.status}")
+            return ""
+  
 
 class CPSearch(UJSSearch):
     """
@@ -45,7 +52,7 @@ class CPSearch(UJSSearch):
         FIRST_NAME = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$participantCriteriaControl$firstNameControl'
         DOB = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$participantCriteriaControl$dateOfBirthControl$DateTextBox'
 
-    def search_results_from_page(self, page: etree) -> List[dict]:
+    def search_results_from_page(self, page: str) -> List[dict]:
         """
         Given a parsed html page, (parsed w/ lxml.html), return a list of ujs search results.
 
@@ -58,7 +65,12 @@ class CPSearch(UJSSearch):
             the first  tr/td has an <a> tag with a link to the Docket.  The second tr/td has an <a> tag with a link to the Summary.
  
         """
-        results_panel = page.xpath("//div[@id='ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphDynamicContent_participantCriteriaControl_searchResultsGridControl_resultsPanel']")
+
+
+        page = lxml.html.document_fromstring(page.strip())
+
+        results_panel = page.xpath("//div[contains(@id, 'resultsPanel')]")
+        #page.xpath("//div[@id='ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphDynamicContent_participantCriteriaControl_searchResultsGridControl_resultsPanel']")
         if len(results_panel) == 0:
             return []
         assert len(results_panel) == 1, "Did not find one and only one results panel."
@@ -211,11 +223,7 @@ class CPSearch(UJSSearch):
         assert search_results_page.status_code == 200, "Request for search results failed."
         print("GOT search results back")
 
-        #with open("participantSearchResults.html", "wb") as f:
-        #    f.write(search_results_page.content)
-
-        parsed_page = lxml.html.document_fromstring(search_results_page.text)
-        results = self.search_results_from_page(parsed_page)
+        results = self.search_results_from_page(search_results_page.text)
 
         logging.info(f"Found {len(results)} results")
 
@@ -243,7 +251,7 @@ class CPSearch(UJSSearch):
             year = matches.group('year'),
         )
 
-    def get_docket_search_post_data(self, court, county, dkttype, docket_num, year, nonce, viewstate):
+    def get_docket_search_post_data(self, court, county, dkt_type, sequence, year, nonce, viewstate):
         """
         Build a dict with the data to POST to search for a specific docket.
 
@@ -266,20 +274,18 @@ class CPSearch(UJSSearch):
         NONCE = 'ctl00$ctl00$ctl00$ctl07$captchaAnswer'
 
         return {
-            "_VIEWSTATE": viewstate,
-            "_VIEWSTATEGENERATOR": "751CF88B",
+            "__VIEWSTATE": viewstate,
+            "__VIEWSTATEGENERATOR": "751CF88B",
             '__SCROLLPOSITIONX': 0,
             '__SCROLLPOSITIONY': 0,
             COURT: court,
             COUNTY: county,
-            DKT_TYPE: dkttype,
-            DKT_NUM: docket_num,
+            DKT_TYPE: dkt_type,
+            DKT_NUM: sequence,
             YEAR: year,
             SEARCH_CONTROL: 'Search',
             NONCE: nonce,
         }
-
-
 
     async def search_docket_number(self, docket_number: str) -> dict:
         """
@@ -301,12 +307,14 @@ class CPSearch(UJSSearch):
             assert viewstate is not None, "couldn't find viewstate on person search page"
 
             search_data = self.get_docket_search_post_data(
-                **self.parse_docket_number(docket_number),
+                **self.parse_docket_number(docket_number)._asdict(),
                 nonce=nonce,
                 viewstate=viewstate
             )
 
-            search_results = await post(session, sslcontext, self.BASE_URL, search_data) 
-
-            breakpoint()
-            return []
+            search_results_page = await post(session, sslcontext, self.BASE_URL, search_data) 
+            if search_results_page == "":
+                return [{"error": "Searching failed."}]
+            
+            search_results = self.search_results_from_page(search_results_page)
+            return search_results

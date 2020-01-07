@@ -71,6 +71,7 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
     except KeyError:
         pytest.raises("Search Results missing docket number.")
 
+
     for r in results:
         for k, v in asdict(r).items():
             assert v.strip() != ""
