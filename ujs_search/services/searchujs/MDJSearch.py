@@ -304,11 +304,12 @@ class MDJSearch(UJSSearch):
     def get_select_office_data(self, base, county, office, nonce, viewstate):
 
         office_code = f"{county}{office}"
+       
         base.update({
-            "__EVENTTARGET": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice",
             "__VIEWSTATE": viewstate,
+            "__EVENTTARGET": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice": office_code,
             "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
-            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice": f"{office_code}",
         })
         return base
 
@@ -317,11 +318,11 @@ class MDJSearch(UJSSearch):
         base.update({
             "__EVENTTARGET":"",
             "__VIEWSTATE": viewstate,
-            "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
             "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlDocketType": dn.dkt_type,
             "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$txtSequenceNumber": dn.sequence,
             "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$txtYear": dn.year,
-            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch": "Search"
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch": "Search",
+            "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
         })
         return base
 
@@ -346,28 +347,26 @@ class MDJSearch(UJSSearch):
             county_select_page = await self.post(
                 session, sslcontext, self.BASE_URL, data = county_select_data)
             if county_select_page == "": return [{"errors": "Failed to select county"}]
-            with open("../out1.html", "w") as f:
-                f.write(county_select_page)
 
             # select the court office
-            viewstate = self.get_viewstate(main_page)
-            nonce = self.get_nonce(main_page)
+            viewstate = self.get_viewstate(county_select_page)
+            nonce = self.get_nonce(county_select_page)
             office_select_data = self.get_select_office_data(
                 base = county_select_data, office = dn.office, county=dn.county, nonce=nonce, viewstate=viewstate)           
             office_select_page = await self.post(
                 session, sslcontext, self.BASE_URL, data=office_select_data)
             if office_select_page == "": return [{"errors": "Failed to select office"}]
-            with open("../out2.html", "w") as f:
-                f.write(office_select_page)
 
             # POST the search
-            viewstate = self.get_viewstate(main_page)
-            nonce = self.get_nonce(main_page)
+            viewstate = self.get_viewstate(office_select_page)
+            nonce = self.get_nonce(office_select_page)
             docket_search_data = self.get_docket_search_data(
                 office_select_data, dn, nonce=nonce, viewstate=viewstate)
             docket_search_page = await self.post(
                 session, sslcontext, self.BASE_URL, data=docket_search_data)
             if docket_search_page == "": return [{"errors": "Failed to get search results page"}]
 
+
             # parse the results.
             results = self.search_results_from_page(docket_search_page)
+            return results

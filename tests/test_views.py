@@ -30,7 +30,7 @@ def test_search_name(monkeypatch, setup_tests, api_rf, name_search_data):
     resp = v.post(req)
     assert resp.status_code == 200
 
-def test_search_docket_number(monkeypatch, setup_tests, api_rf):
+def test_search_cp_docket_number(monkeypatch, setup_tests, api_rf):
     logger.info(setup_tests)
     req = api_rf.post(
         "/search/docket",
@@ -45,6 +45,22 @@ def test_search_docket_number(monkeypatch, setup_tests, api_rf):
 
     v = setup_view(SearchDocket(), req)
     resp = v.post(req)
-    breakpoint()
+    assert resp.status_code == 200
+
+def test_search_mdj_docket_number(monkeypatch, setup_tests, api_rf):
+    logger.info(setup_tests)
+    req = api_rf.post(
+        "/search/docket",
+    )
+    dn = os.environ["MDJ_SEARCH_DOCKET_TEST"]
+    search_data = {"docket_number": dn} 
+    from ujs_search.views import SearchDocket
+    # this DIY Monkeypatching is necessary b/c the request object that gets created is a 
+    # default django Request, not a REST FRAMEWORK request, so has no data attr.
+    # see discussion at https://github.com/encode/django-rest-framework/issues/3608#issuecomment-154427523
+    setattr(req, 'data', search_data)
+
+    v = setup_view(SearchDocket(), req)
+    resp = v.post(req)
     assert resp.status_code == 200
 
