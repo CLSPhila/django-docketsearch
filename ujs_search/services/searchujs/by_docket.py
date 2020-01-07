@@ -35,3 +35,7 @@ def search_by_docket(docket_number):
     results = loop.run_until_complete(searcher.search_docket_number(docket_number))
  
     return results 
+
+
+""" NB - to implement a search_by_multiple_dockets, using async, we should prob. use a semaphor to limit 
+concurrency"""
