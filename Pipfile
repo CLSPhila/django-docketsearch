@@ -16,6 +16,7 @@ requests = "==2.22.0"
 django = "==2.2.6"
 djangorestframework = "==3.10.3"
 django-cors-headers = "==3.2.0"
+aiohttp = "*"
 
 [requires]
 python_version = "3.7"

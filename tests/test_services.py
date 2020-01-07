@@ -8,6 +8,8 @@ import time
 import requests
 from dataclasses import asdict
 import os
+import asyncio
+
 
 logger = logging.getLogger(__name__)
 
@@ -95,3 +97,13 @@ def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
 
 
 
+def test_cp_search_docket(monkeypatch, mock_search_results):
+    dn = os.environ["CP_SEARCH_DOCKET_TEST"]
+    if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
+        logger.info("Monkeypatching network calls.")
+        monkeypatch.setattr(CPSearch, "search_docket_number", mock_search_results)
+
+    cp_searcher = UJSSearchFactory.use_court("CP")
+    loop = asyncio.get_event_loop()
+    results = loop.run_until_complete(cp_searcher.search_docket_number(dn))
+    assert len(results) == 1

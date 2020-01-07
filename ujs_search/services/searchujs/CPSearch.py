@@ -7,10 +7,21 @@ import time
 import logging
 from typing import List, Optional
 from datetime import date
-
+import asyncio
+import aiohttp
+import ssl
 
 logger = logging.getLogger(__name__)
 
+async def fetch(session, sslctx, url):
+    """
+    async method to fetch a url
+    """
+    async with session.get(url, ssl=sslctx) as response:
+        if response.status == 200:
+            return await response.text()
+        else:
+            return await response.text() 
 
 class CPSearch(UJSSearch):
     """
@@ -19,10 +30,10 @@ class CPSearch(UJSSearch):
     BASE_URL = "https://ujsportal.pacourts.us/DocketSheets/CP.aspx"
 
     class CONTROLS:
+        # Name search Control ids
         LAST_NAME = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$participantCriteriaControl$lastNameControl'
         FIRST_NAME = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$participantCriteriaControl$firstNameControl'
         DOB = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$participantCriteriaControl$dateOfBirthControl$DateTextBox'
-
 
     def search_results_from_page(self, page: etree) -> List[dict]:
         """
@@ -201,6 +212,70 @@ class CPSearch(UJSSearch):
         return results
 
 
-    def search_docket_number(self, docket_number: str) -> dict:
-        raise NotImplementedError
+    def get_docket_search_post_data(self, court, county, dkttype, docket_num, year, nonce, viewstate):
+        """
+        Build a dict with the data to POST to search for a specific docket.
 
+        Args:
+            court: CP or MC
+            county (str): like 43, 21. Indicates a county in PA.
+            dkttype (str): CR, MD, and  so on.
+            docket_num (str): A string of 7 digits, like 0123456
+            year (str): Four digit year.
+            nonce (str): nonce for the search page.
+            viewstate (str): asp.net viewstate for the search page.
+        """
+        SEARCH_TYPE = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$searchTypeListControl'
+        COURT = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$docketNumberCriteriaControl$docketNumberControl$mddlCourt'
+        COUNTY = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$docketNumberCriteriaControl$docketNumberControl$mtxtCounty'
+        DKT_TYPE = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$docketNumberCriteriaControl$docketNumberControl$mddlDocketType'
+        DKT_NUM = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$docketNumberCriteriaControl$docketNumberControl$mtxtSequenceNumber'
+        YEAR = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$docketNumberCriteriaControl$docketNumberControl$mtxtYear'
+        SEARCH_CONTROL = 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$docketNumberCriteriaControl$searchCommandControl'
+        NONCE = 'ctl00$ctl00$ctl00$ctl07$captchaAnswer'
+
+        return {
+            "_VIEWSTATE": viewstate,
+            "_VIEWSTATEGENERATOR": "751CF88B",
+            '__SCROLLPOSITIONX': 0,
+            '__SCROLLPOSITIONY': 0,
+            COURT: court,
+            COUNTY: county,
+            DKT_TYPE: dkttype,
+            DKT_NUM: docket_num,
+            YEAR: year,
+            SEARCH_CONTROL: 'Search',
+            NONCE: nonce,
+        }
+
+
+
+    async def search_docket_number(self, docket_number: str) -> dict:
+        """
+        async coroutine to search the court of common pleas for a single docket number. 
+
+
+        TODO the session should be created at a higher level and passed down to this method.
+        """
+        sslcontext = ssl.create_default_context()
+        sslcontext.set_ciphers("HIGH:!DH:!aNULL")
+        headers = self.__headers__
+        async with aiohttp.ClientSession(headers=headers) as session:
+            search_page = await fetch(session, sslcontext, self.BASE_URL)
+
+            nonce = self.get_nonce(search_page)
+            assert nonce is not None, "couldn't find nonce on participant search page"
+
+            viewstate = self.get_viewstate(search_page)
+            assert viewstate is not None, "couldn't find viewstate on person search page"
+
+            search_data = self.get_docket_search_post_data(
+                **self.parse_docket_number(docket_number),
+                nonce=nonce,
+                viewstate=viewstate
+            )
+
+            search_results = await post(session, sslcontext, self.BASE_URL, self.)
+
+            breakpoint()
+            return []
