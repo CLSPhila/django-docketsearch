@@ -16,35 +16,16 @@ logger = logging.getLogger(__name__)
 
 DocketNumber = namedtuple('DocketNumber', 'court county dkt_type sequence year')
 
-async def fetch(session, sslctx, url):
-    """
-    async method to fetch a url
-    """
-    async with session.get(url, ssl=sslctx) as response:
-        if response.status == 200:
-            return await response.text()
-        else:
-            logger.error(f"GET {url} failed with {response.status}")
-            return ""
-
-
-async def post(session, sslctx, url, data):
-    """
-    async method to post data to a url.
-    """
-    async with session.post(url, ssl=sslctx, data=data) as response:
-        if response.status == 200:
-            return await response.text()
-        else:
-            logger.error(f"POST {url} failed with status {response.status}")
-            return ""
-  
+ 
 
 class CPSearch(UJSSearch):
     """
     Class for searching the Court of Common Pleas.
     """
     BASE_URL = "https://ujsportal.pacourts.us/DocketSheets/CP.aspx"
+
+    DOCKET_NUMBER_REGEX = r"^(?P<court>CP|MC)-(?P<county>[0-9]{2})-(?P<dkt_type>CR|MD|SA|SU)-(?P<sequence>[0-9]{7})-(?P<year>[0-9]{4})"
+
 
     class CONTROLS:
         # Name search Control ids
@@ -65,8 +46,6 @@ class CPSearch(UJSSearch):
             the first  tr/td has an <a> tag with a link to the Docket.  The second tr/td has an <a> tag with a link to the Summary.
  
         """
-
-
         page = lxml.html.document_fromstring(page.strip())
 
         results_panel = page.xpath("//div[contains(@id, 'resultsPanel')]")
@@ -126,6 +105,8 @@ class CPSearch(UJSSearch):
         """
         Get a dict with the keys/values for telling the site that we would like to search for a person's 
         name.
+        
+        This is for the intermediary step of simply getting the page from which we can search for a name.
         """
         dt = {
             '__EVENTTARGET': 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$searchTypeListControl',
@@ -144,7 +125,10 @@ class CPSearch(UJSSearch):
         dt.update(changes)
         return dt
 
-    def get_search_form_data(self, changes):
+    def get_name_search_form_data(self, changes):
+        """
+        Get the data to POST to complete a search by name for a person.
+        """
         dt = {
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphDynamicContent$searchTypeListControl': 'Aopc.Cp.Views.DocketSheets.IParticipantSearchView, CPCMSApplication, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null',
             self.CONTROLS.LAST_NAME: '',
@@ -210,7 +194,7 @@ class CPSearch(UJSSearch):
         viewstate = self.get_viewstate(search_page)
         assert viewstate is not None, "couldn't find viewstate on person search page"
 
-        search_form_data = self.get_search_form_data({
+        search_form_data = self.get_name_search_form_data({
             'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
             '__VIEWSTATE': viewstate,
             self.CONTROLS.LAST_NAME: last_name,
@@ -239,7 +223,7 @@ class CPSearch(UJSSearch):
         Returns:
             A DocketNumber namedtuple of the components of the full docket number.
         """
-        patt = re.compile(r"^(?P<court>CP|MC)-(?P<county>[0-9]{2})-(?P<dkt_type>CR|MD|SA|SU)-(?P<sequence>[0-9]{7})-(?P<year>[0-9]{4})")
+        patt = re.compile(self.DOCKET_NUMBER_REGEX)
         matches = patt.match(full_dn)
         if not matches:
             raise ValueError(f"{full_dn} was not a correctly formatted docket number.")
@@ -298,7 +282,7 @@ class CPSearch(UJSSearch):
         sslcontext.set_ciphers("HIGH:!DH:!aNULL")
         headers = self.__headers__
         async with aiohttp.ClientSession(headers=headers) as session:
-            search_page = await fetch(session, sslcontext, self.BASE_URL)
+            search_page = await self.fetch(session, sslcontext, self.BASE_URL)
 
             nonce = self.get_nonce(search_page)
             assert nonce is not None, "couldn't find nonce on participant search page"
@@ -312,7 +296,7 @@ class CPSearch(UJSSearch):
                 viewstate=viewstate
             )
 
-            search_results_page = await post(session, sslcontext, self.BASE_URL, search_data) 
+            search_results_page = await self.post(session, sslcontext, self.BASE_URL, search_data) 
             if search_results_page == "":
                 return [{"error": "Searching failed."}]
             

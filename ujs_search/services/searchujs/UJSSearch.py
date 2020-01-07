@@ -35,6 +35,29 @@ class UJSSearch:
             return match.group('viewstate')
         return None
 
+    async def fetch(self, session, sslctx, url):
+        """
+        async method to fetch a url
+        """
+        async with session.get(url, ssl=sslctx) as response:
+            if response.status == 200:
+                return await response.text()
+            else:
+                logger.error(f"GET {url} failed with {response.status}")
+                return ""
+
+
+    async def post(self, session, sslctx, url, data):
+        """
+        async method to post data to a url.
+        """
+        async with session.post(url, ssl=sslctx, data=data) as response:
+            if response.status == 200:
+                return await response.text()
+            else:
+                logger.error(f"POST {url} failed with status {response.status}")
+                return ""
+ 
     __headers__ = {
             'User-Agent': 'CleanSlateScreening',
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
