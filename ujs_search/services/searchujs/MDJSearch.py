@@ -301,9 +301,22 @@ class MDJSearch(UJSSearch):
             "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
         }
 
+    def combine_office_code(self, county, office):
+        """
+        Combine county and office codes into one for or five digit code for POSTing.
+
+        MDJ docket numbers include a five-digit code that's the concatenation of the county and office codes
+        for a case. But for whatever reason, the POST requires that if the county code starts w/ a 0, the
+        leading 0 gets cut. 
+
+        For ex., Alleheny is 05, so while a docket might have the number MD-05101-CR-1234567-2020, the 
+        POST requires the 05101 to be shortened to 5101.
+        """
+        return f"{county.lstrip('0')}{office}"
+
     def get_select_office_data(self, base, county, office, nonce, viewstate):
 
-        office_code = f"{county}{office}"
+        office_code = self.combine_office_code(county, office)
        
         base.update({
             "__VIEWSTATE": viewstate,
@@ -365,7 +378,7 @@ class MDJSearch(UJSSearch):
             docket_search_page = await self.post(
                 session, sslcontext, self.BASE_URL, data=docket_search_data)
             if docket_search_page == "": return [{"errors": "Failed to get search results page"}]
-
+            with open("../out3.html","w") as f: f.write(docket_search_page)
 
             # parse the results.
             results = self.search_results_from_page(docket_search_page)
