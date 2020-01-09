@@ -234,7 +234,7 @@ class MDJSearch(UJSSearch):
         """
         Parse the components of a MDJ Docket number.
         """
-        patt = re.compile(self.DOCKET_NUMBER_REGEX)
+        patt = re.compile(self.DOCKET_NUMBER_REGEX, re.IGNORECASE)
         matches = patt.match(dn)
         if not matches:
             raise ValueError(f"{dn} was not a correctly formatted docket number.")
@@ -340,7 +340,7 @@ class MDJSearch(UJSSearch):
         return base
 
     async def search_docket_number(self, docket_number: str) -> dict:
-
+        docket_number = docket_number.upper()
         dn = self.parse_docket_number(docket_number)
         county_name = self.lookup_county(dn.county, dn.office)
         sslcontext = ssl.create_default_context()

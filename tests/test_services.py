@@ -115,8 +115,9 @@ def test_cp_search_docket(monkeypatch, mock_search_results):
         monkeypatch.setattr(CPSearch, "search_docket_number", mock_search_results)
 
     cp_searcher = UJSSearchFactory.use_court("CP")
-    loop = asyncio.get_event_loop()
-    results = loop.run_until_complete(cp_searcher.search_docket_number(dn))
+    #loop = asyncio.get_event_loop()
+    #results = loop.run_until_complete(cp_searcher.search_docket_number(dn))
+    results = asyncio.run(cp_searcher.search_docket_number(dn))
     assert len(results) == 1
 
 
@@ -127,6 +128,7 @@ def test_mdj_search_docket(monkeypatch, mock_search_results):
         monkeypatch.setattr(MDJSearch, "search_docket_number", mock_search_results)
 
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
-    loop = asyncio.get_event_loop()
-    results = loop.run_until_complete(mdj_searcher.search_docket_number(dn))
+    #loop = asyncio.get_event_loop()
+    #results = loop.run_until_complete(mdj_searcher.search_docket_number(dn))
+    results = asyncio.run(mdj_searcher.search_docket_number(dn))
     assert len(results) == 1

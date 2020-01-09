@@ -223,7 +223,7 @@ class CPSearch(UJSSearch):
         Returns:
             A DocketNumber namedtuple of the components of the full docket number.
         """
-        patt = re.compile(self.DOCKET_NUMBER_REGEX)
+        patt = re.compile(self.DOCKET_NUMBER_REGEX, re.IGNORECASE)
         matches = patt.match(full_dn)
         if not matches:
             raise ValueError(f"{full_dn} was not a correctly formatted docket number.")
@@ -278,6 +278,7 @@ class CPSearch(UJSSearch):
 
         TODO the session should be created at a higher level and passed down to this method.
         """
+        docket_number = docket_number.upper()
         sslcontext = ssl.create_default_context()
         sslcontext.set_ciphers("HIGH:!DH:!aNULL")
         headers = self.__headers__

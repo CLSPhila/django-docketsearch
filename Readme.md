@@ -37,6 +37,10 @@ REAL_NETWORK_TESTS=False
 UJS_SEARCH_TEST_FNAME=Greasy
 UJS_SEARCH_TEST_LNAME=Spoon
 UJS_SEARCH_TEST_DOB=1950-05-05
+
+cp_search_docket_test=cp-43-cr-1234567-2020
+mdj_search_docket_test=mj-01234-cr-7654321-2020
+
 ```
 
 ## Additional Information

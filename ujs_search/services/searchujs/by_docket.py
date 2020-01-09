@@ -12,8 +12,8 @@ def which_court(docket_number: str) -> Optional[str]:
     If the docket number is in the wrong format, return None.
     """
 
-    cp_patt = re.compile(CPSearch.DOCKET_NUMBER_REGEX)
-    md_patt = re.compile(MDJSearch.DOCKET_NUMBER_REGEX)
+    cp_patt = re.compile(CPSearch.DOCKET_NUMBER_REGEX, re.IGNORECASE)
+    md_patt = re.compile(MDJSearch.DOCKET_NUMBER_REGEX, re.IGNORECASE)
 
     if cp_patt.match(docket_number):
         return UJSSearchFactory.CP
@@ -31,9 +31,9 @@ def search_by_docket(docket_number):
     if not court:
         raise ValueError(f"{docket_number}")
     searcher = UJSSearchFactory.use_court(court)
-    loop = asyncio.get_event_loop()
-    results = loop.run_until_complete(searcher.search_docket_number(docket_number))
- 
+    #loop = asyncio.get_event_loop()
+    #results = loop.run_until_complete(searcher.search_docket_number(docket_number))
+    results = asyncio.run(searcher.search_docket_number(docket_number.upper()))
     return results 
 
 
