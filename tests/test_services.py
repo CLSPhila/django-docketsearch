@@ -8,11 +8,13 @@ import time
 import requests
 from dataclasses import asdict
 import os
+import asyncio
+
 
 logger = logging.getLogger(__name__)
 
 
-def test_cp_search(monkeypatch, mock_search_results):
+def test_cp_search_name(monkeypatch, mock_search_results):
     first_name = os.environ.get("UJS_SEARCH_TEST_FNAME") or "Joe"
     last_name = os.environ.get("UJS_SEARCH_TEST_LNAME") or "Normal"
     dob = datetime.strptime(os.environ.get("UJS_SEARCH_TEST_DOB"), r"%Y-%m-%d") if \
@@ -30,7 +32,7 @@ def test_cp_search(monkeypatch, mock_search_results):
         pytest.raises("Search Results missing docket number.")
 
 
-def test_cp_search_no_results(monkeypatch):
+def test_cp_search_name_no_results(monkeypatch):
 
     def get_results(*args, **kwargs):
         return []
@@ -47,7 +49,7 @@ def test_cp_search_no_results(monkeypatch):
     assert len(results) == 0 
 
 
-def test_mdj_search(monkeypatch, mock_search_results):
+def test_mdj_search_name(monkeypatch, mock_search_results):
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
     first_name = os.environ.get("UJS_SEARCH_TEST_FNAME") or "Joe"
     last_name = os.environ.get("UJS_SEARCH_TEST_LNAME") or "Normal"
@@ -69,12 +71,13 @@ def test_mdj_search(monkeypatch, mock_search_results):
     except KeyError:
         pytest.raises("Search Results missing docket number.")
 
+
     for r in results:
         for k, v in asdict(r).items():
             assert v.strip() != ""
 
 
-def test_mdj_search_no_results(monkeypatch, mock_search_results):
+def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
 
     if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
@@ -94,4 +97,36 @@ def test_mdj_search_no_results(monkeypatch, mock_search_results):
     assert len(results) == 0
 
 
+def test_parse_cp_docket_number():
+    cp_searcher = UJSSearchFactory.use_court("CP")
+    dn = "CP-12-CR-1234567-2000"
+    parsed = cp_searcher.parse_docket_number(dn)
+    assert parsed.court == "CP"
+    assert parsed.sequence == "1234567"
 
+    bad_dn = "CP-1234"
+    with pytest.raises(ValueError):
+        cp_searcher.parse_docket_number(bad_dn)
+
+def test_cp_search_docket(monkeypatch, mock_search_results):
+    dn = os.environ["CP_SEARCH_DOCKET_TEST"]
+    if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
+        logger.info("Monkeypatching network calls.")
+        monkeypatch.setattr(CPSearch, "search_docket_number", mock_search_results)
+
+    cp_searcher = UJSSearchFactory.use_court("CP")
+    loop = asyncio.get_event_loop()
+    results = loop.run_until_complete(cp_searcher.search_docket_number(dn))
+    assert len(results) == 1
+
+
+def test_mdj_search_docket(monkeypatch, mock_search_results):
+    dn = os.environ["MDJ_SEARCH_DOCKET_TEST"]
+    if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
+        logger.info("Monkeypatching network calls.")
+        monkeypatch.setattr(MDJSearch, "search_docket_number", mock_search_results)
+
+    mdj_searcher = UJSSearchFactory.use_court("MDJ")
+    loop = asyncio.get_event_loop()
+    results = loop.run_until_complete(mdj_searcher.search_docket_number(dn))
+    assert len(results) == 1

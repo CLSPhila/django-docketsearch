@@ -3,7 +3,7 @@ import requests
 import lxml.html
 import re
 import time
-from typing import List, Optional 
+from typing import List, Optional, Union 
 from datetime import date
 import logging
 
@@ -14,23 +14,52 @@ logger = logging.getLogger(__name__)
 
 class UJSSearch:
 
-    def get_nonce(self, resp: requests.Response) -> Optional[str]:
-        match = re.search(r"captchaAnswer' \)\.value = '(?P<nonce>\-?\d+)';", resp.text)
+    def get_nonce(self, resp: Union[requests.Response, str]) -> Optional[str]:
+        try:
+            txt = resp.text
+        except:
+            txt = resp
+        match = re.search(r"captchaAnswer' \)\.value = '(?P<nonce>\-?\d+)';", txt)
         if match:
             return match.group('nonce')
         return None
 
-    def get_viewstate(self, resp: requests.Response) -> Optional[str]:
-        match = re.search(r"input type=\"hidden\" name=\"__VIEWSTATE\" id=\"__VIEWSTATE\" value=\"(?P<viewstate>[\-0-9a-z]+)\"", resp.text)
+    def get_viewstate(self, resp: Union[requests.Response, str]) -> Optional[str]:
+        try:
+            txt = resp.text
+        except:
+            txt = resp
+        match = re.search(
+            r"input type=\"hidden\" name=\"__VIEWSTATE\" id=\"__VIEWSTATE\" value=\"(?P<viewstate>[\-0-9a-z]+)\"", txt)
         if match:
             return match.group('viewstate')
         return None
 
+    async def fetch(self, session, sslctx, url):
+        """
+        async method to fetch a url
+        """
+        async with session.get(url, ssl=sslctx) as response:
+            if response.status == 200:
+                return await response.text()
+            else:
+                logger.error(f"GET {url} failed with {response.status}")
+                return ""
 
-    def __init__(self):
-        self.sess = requests.Session()
-        headers = {
-            'User-Agent': 'EG Testing',
+
+    async def post(self, session, sslctx, url, data):
+        """
+        async method to post data to a url.
+        """
+        async with session.post(url, ssl=sslctx, data=data) as response:
+            if response.status == 200:
+                return await response.text()
+            else:
+                logger.error(f"POST {url} failed with status {response.status}")
+                return ""
+ 
+    __headers__ = {
+            'User-Agent': 'CleanSlateScreening',
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
             'Upgrade-Insecure-Requests': '1',
@@ -40,7 +69,10 @@ class UJSSearch:
             'Connection': 'keep-alive',
             'Host': 'ujsportal.pacourts.us',
         }
-        self.sess.headers.update(headers)
+
+    def __init__(self):
+        self.sess = requests.Session()
+        self.sess.headers.update(self.__headers__)
 
 
 

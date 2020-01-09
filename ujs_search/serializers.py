@@ -8,3 +8,8 @@ class NameSearchSerializer(S.Serializer):
     last_name = S.CharField(required=True)
     dob = S.DateField(required=False, default=None)
 
+class DocketSearchSerializer(S.Serializer):
+    """
+    Validata json asking to search for a particular docket number.
+    """
+    docket_number = S.CharField(required=True)

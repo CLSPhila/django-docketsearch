@@ -5,7 +5,7 @@ from rest_framework import generics
 from rest_framework import status
 import logging
 from . import appsettings
-from .serializers import NameSearchSerializer
+from .serializers import NameSearchSerializer, DocketSearchSerializer
 from .services import searchujs
 
 logger = logging.getLogger(__name__)
@@ -36,3 +36,25 @@ class SearchName(generics.CreateAPIView):
                 "errors": [str(ex)]
             })
 
+class SearchDocket(generics.CreateAPIView):
+
+
+    queryset = []
+    serializer_class = DocketSearchSerializer
+    permission_classes = appsettings.PERMISSION_CLASSES
+
+    def post(self, request, *args, **kwargs):
+        try: 
+            search_data = DocketSearchSerializer(data = request.data)
+            if search_data.is_valid():
+                search_data = search_data.validated_data
+                docket_number = search_data["docket_number"]
+                return Response({
+                    "searchResults": searchujs.search_by_docket(docket_number)
+                })
+
+
+        except Exception as ex:
+            return Response({
+                "errors": [str(ex)]
+            })
