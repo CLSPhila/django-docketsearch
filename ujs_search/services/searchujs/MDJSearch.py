@@ -11,7 +11,8 @@ from typing import List, Optional
 from collections import namedtuple
 from datetime import date
 import csv
-
+import ujs_search
+import os
 
 logger = logging.getLogger(__name__)
 DocketNumber = namedtuple('DocketNumber', 'court county office dkt_type sequence year')
@@ -275,7 +276,10 @@ class MDJSearch(UJSSearch):
 
         """
         full_five_digits = "{}{}".format(county_code, office_code)
-        with open("reference/county_lookup.csv", "r") as f:
+
+        lookup_table_path = os.path.join(os.path.split(ujs_search.__file__)[0], "reference/county_lookup.csv")
+
+        with open(lookup_table_path, "r") as f:
             reader = csv.DictReader(f)
             matches = []
             for row in reader:
