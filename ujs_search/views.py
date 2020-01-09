@@ -52,6 +52,10 @@ class SearchDocket(generics.CreateAPIView):
                 return Response({
                     "searchResults": searchujs.search_by_docket(docket_number)
                 })
+            else:
+                return Response({
+                    "errors": search_data.errors
+                })
 
 
         except Exception as ex:
