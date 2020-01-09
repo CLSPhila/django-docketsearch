@@ -4,6 +4,7 @@ from .CPSearch import CPSearch
 from .MDJSearch import MDJSearch
 from typing import Optional
 import asyncio
+from dataclasses import asdict
 
 def which_court(docket_number: str) -> Optional[str]:
     """
@@ -34,7 +35,7 @@ def search_by_docket(docket_number):
     #loop = asyncio.get_event_loop()
     #results = loop.run_until_complete(searcher.search_docket_number(docket_number))
     results = asyncio.run(searcher.search_docket_number(docket_number.upper()))
-    return results 
+    return [asdict(r) for r in results] 
 
 
 """ NB - to implement a search_by_multiple_dockets, using async, we should prob. use a semaphor to limit 
