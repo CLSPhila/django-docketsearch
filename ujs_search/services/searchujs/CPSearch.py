@@ -22,7 +22,8 @@ class CPSearch(UJSSearch):
     """
     Class for searching the Court of Common Pleas.
     """
-    BASE_URL = "https://ujsportal.pacourts.us/DocketSheets/CP.aspx"
+    PREFIX_URL = "https://ujsportal.pacourts.us/DocketSheets/"
+    BASE_URL = PREFIX_URL + "CP.aspx"
 
     DOCKET_NUMBER_REGEX = r"^(?P<court>CP|MC)-(?P<county>[0-9]{2})-(?P<dkt_type>CR|MD|SA|SU)-(?P<sequence>[0-9]{7})-(?P<year>[0-9]{4})"
 
@@ -78,8 +79,8 @@ class CPSearch(UJSSearch):
         results =  [
             SearchResult(
                 docket_number = dn.text,
-                docket_sheet_url = ds.get("href"),
-                summary_url = su.get("href"),
+                docket_sheet_url = self.PREFIX_URL + ds.get("href"),
+                summary_url = self.PREFIX_URL + su.get("href"),
                 caption = cp.text,
                 filing_date = fd.text,
                 case_status = cs.text,

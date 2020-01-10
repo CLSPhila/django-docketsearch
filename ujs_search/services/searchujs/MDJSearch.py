@@ -20,7 +20,8 @@ DocketNumber = namedtuple('DocketNumber', 'court county office dkt_type sequence
 
 
 class MDJSearch(UJSSearch):
-    BASE_URL = "https://ujsportal.pacourts.us/DocketSheets/MDJ.aspx"
+    PREFIX_URL = "https://ujsportal.pacourts.us/DocketSheets/"
+    BASE_URL = PREFIX_URL + "MDJ.aspx"
     DOCKET_NUMBER_REGEX = r"^(?P<court>MJ)-(?P<county>[0-9]{2})(?P<office>[0-9]{3})-(?P<dkt_type>CR|CV|LT|NT|TR)-(?P<sequence>[0-9]{7})-(?P<year>[0-9]{4})"
 
     class CONTROLS:
@@ -104,8 +105,8 @@ class MDJSearch(UJSSearch):
         results = [
             SearchResult(
                 docket_number = dn.text,
-                docket_sheet_url = ds,
-                summary_url = su,
+                docket_sheet_url = self.PREFIX_URL + ds,
+                summary_url = self.PREFIX_URL + su,
                 caption = cp.text,
                 filing_date = fd.text,
                 case_status = cs.text,
