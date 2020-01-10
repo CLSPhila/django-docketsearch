@@ -382,7 +382,6 @@ class MDJSearch(UJSSearch):
             docket_search_page = await self.post(
                 session, sslcontext, self.BASE_URL, data=docket_search_data)
             if docket_search_page == "": return [{"errors": "Failed to get search results page"}]
-            with open("../out3.html","w") as f: f.write(docket_search_page)
 
             # parse the results.
             results = self.search_results_from_page(docket_search_page)
