@@ -1,2 +1,2 @@
 include READEME.md
-include reference/county_lookup.csv
+include ujs_search/reference/county_lookup.csv
