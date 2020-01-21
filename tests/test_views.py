@@ -15,7 +15,28 @@ def setup_view(view, request, *args, **kwargs):
     return view
 
 
-def test_search_name(monkeypatch, setup_tests, api_rf, name_search_data):
+
+def test_search_name_w_get(monkeypatch, setup_tests, api_rf, name_search_data):
+    logger.info(setup_tests)
+    first_name = name_search_data['first_name']
+    last_name = name_search_data['last_name']
+    dob = name_search_data['dob']
+    request_string = f"/search/name?first_name={first_name}&last_name={last_name}&dob={dob}"
+    req = api_rf.get(
+        request_string,
+    )
+    from ujs_search.views import SearchName 
+    # this DIY Monkeypatching is necessary b/c the request object that gets created is a 
+    # default django Request, not a REST FRAMEWORK request, so has no data attr.
+    # see discussion at https://github.com/encode/django-rest-framework/issues/3608#issuecomment-154427523
+    setattr(req, 'query_params', name_search_data)
+    v = setup_view(SearchName(), req)
+    resp = v.get(req)
+    assert resp.status_code == 200
+
+
+
+def test_search_name_w_post(monkeypatch, setup_tests, api_rf, name_search_data):
     logger.info(setup_tests)
     req = api_rf.post(
         "/search/name",
