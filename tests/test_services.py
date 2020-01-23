@@ -21,9 +21,9 @@ def test_cp_search_name(monkeypatch, mock_search_results):
         os.environ.get("UJS_SEARCH_TEST_DOB") else date(2001, 1, 1)
 
     cp_searcher = UJSSearchFactory.use_court("CP")
-    results = cp_searcher.search_name(
+    results = asyncio.run(cp_searcher.search_name(
         last_name=last_name, first_name=first_name, 
-        dob=dob)
+        dob=dob))
     assert len(results) > 0 
     try:
         for r in results:
@@ -44,8 +44,8 @@ def test_cp_search_name_no_results(monkeypatch):
         logger.warning("Making real network calls in tests.")
 
     cp_searcher = UJSSearchFactory.use_court("CP")
-    results = cp_searcher.search_name(
-        first_name="Ferocity", last_name="Wimbledybear") 
+    results = asyncio.run(cp_searcher.search_name(
+        first_name="Ferocity", last_name="Wimbledybear"))
     assert len(results) == 0 
 
 
@@ -58,10 +58,10 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
 
  
 
-    results = mdj_searcher.search_name(
+    results = asyncio.run(mdj_searcher.search_name(
         last_name=last_name, 
         first_name=first_name, 
-        dob=dob)
+        dob=dob))
 
     
     assert len(results) > 0
@@ -90,10 +90,10 @@ def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
     last_name = "NotARealPerson"
     dob = date(2001, 1, 1)
 
-    results = mdj_searcher.search_name(
+    results = asyncio.run(mdj_searcher.search_name(
         last_name=last_name, 
         first_name=first_name, 
-        dob=dob)
+        dob=dob))
     assert len(results) == 0
 
 

@@ -71,7 +71,7 @@ class UJSSearch:
         }
 
     def __init__(self):
-        self.sess = requests.Session()
+        self.sess = requests.Session() # deprecated. need to switch to aio session.
         self.sess.headers.update(self.__headers__)
 
 

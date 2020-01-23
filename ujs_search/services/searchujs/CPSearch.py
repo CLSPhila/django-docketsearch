@@ -157,62 +157,64 @@ class CPSearch(UJSSearch):
         return dt
 
 
-    def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> dict:
+    async def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> dict:
         """
         Search CP by name. 
         """
+        sslcontext = ssl.create_default_context()
+        sslcontext.set_ciphers("HIGH:!DH:!aNULL")
+        headers = self.__headers__
         if dob:
             dob = dob.strftime(r"%m/%d/%Y")
         # Get the main page.
-        main_page = self.sess.get(self.BASE_URL)
-        assert main_page.status_code == 200, "Request for landing page failed."
-        logger.info("GOT main page")
-        time.sleep(1)
+        async with aiohttp.ClientSession(headers=headers) as session:
+            main_page = await self.fetch(session, sslcontext, self.BASE_URL)
+            assert main_page != "", "Request for landing page failed."
+            logger.info("GOT main page")
 
-        nonce = self.get_nonce(main_page)
-        assert nonce is not None, "couldn't find nonce on main page."
+            nonce = self.get_nonce(main_page)
+            assert nonce is not None, "couldn't find nonce on main page."
 
-        viewstate = self.get_viewstate(main_page)
-        assert viewstate is not None, "couldn't find viewstate on main page"
+            viewstate = self.get_viewstate(main_page)
+            assert viewstate is not None, "couldn't find viewstate on main page"
 
-        # Now select the participant name search
-        select_person_search_data = self.get_select_person_search_data({
-            'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
-            '__VIEWSTATE': viewstate,
-        })
+            # Now select the participant name search
+            select_person_search_data = self.get_select_person_search_data({
+                'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
+                '__VIEWSTATE': viewstate,
+            })
 
-        search_page = self.sess.post(self.BASE_URL, data=select_person_search_data)
-        assert search_page.status_code == 200, "Request for search page failed."
+            search_page = await self.post(session, sslcontext, self.BASE_URL, select_person_search_data)
+            assert search_page != "", "Request for search page failed."
 
-        logging.info("GOT participant search page")
-        # with open("participantSearch.html", "wb") as f:
-        #     f.write(resp.content)
-        time.sleep(1)
+            logging.info("GOT participant search page")
+            # with open("participantSearch.html", "wb") as f:
+            #     f.write(resp.content)
 
-        nonce = self.get_nonce(search_page)
-        assert nonce is not None, "couldn't find nonce on participant search page"
-        
-        viewstate = self.get_viewstate(search_page)
-        assert viewstate is not None, "couldn't find viewstate on person search page"
+            nonce = self.get_nonce(search_page)
+            assert nonce is not None, "couldn't find nonce on participant search page"
+            
+            viewstate = self.get_viewstate(search_page)
+            assert viewstate is not None, "couldn't find viewstate on person search page"
 
-        search_form_data = self.get_name_search_form_data({
-            'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
-            '__VIEWSTATE': viewstate,
-            self.CONTROLS.LAST_NAME: last_name,
-            self.CONTROLS.FIRST_NAME: first_name,
-            self.CONTROLS.DOB : dob or ""
-        })
-        
-        # Make the search request.
-        search_results_page = self.sess.post(self.BASE_URL, data=search_form_data)
-        assert search_results_page.status_code == 200, "Request for search results failed."
-        print("GOT search results back")
+            search_form_data = self.get_name_search_form_data({
+                'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
+                '__VIEWSTATE': viewstate,
+                self.CONTROLS.LAST_NAME: last_name,
+                self.CONTROLS.FIRST_NAME: first_name,
+                self.CONTROLS.DOB : dob or ""
+            })
+            
+            # Make the search request.
+            search_results_page = await self.post(session, sslcontext, self.BASE_URL, search_form_data)
+            assert search_results_page != "", "Request for search results failed."
+            print("GOT search results back")
 
-        results = self.search_results_from_page(search_results_page.text)
+            results = self.search_results_from_page(search_results_page)
 
-        logging.info(f"Found {len(results)} results")
+            logging.info(f"Found {len(results)} results")
 
-        return results
+            return results
 
     def parse_docket_number(self, full_dn: str) -> DocketNumber:
         """
