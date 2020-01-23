@@ -13,10 +13,10 @@ pytest-pythonpath = "==0.7.3"
 [packages]
 lxml = "==4.4.1"
 requests = "==2.22.0"
-django = "==2.2.8"
+django = "==2.2.9"
 djangorestframework = "==3.10.3"
 django-cors-headers = "==3.2.0"
-aiohttp = "*"
+aiohttp = "==3.6.2"
 
 [requires]
 python_version = "3.7"
