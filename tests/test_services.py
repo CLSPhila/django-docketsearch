@@ -25,6 +25,7 @@ def test_cp_search_name(monkeypatch, mock_search_results):
         last_name=last_name, first_name=first_name, 
         dob=dob))
     assert len(results) > 0 
+
     try:
         for r in results:
             r.docket_number
@@ -46,6 +47,7 @@ def test_cp_search_name_no_results(monkeypatch):
     cp_searcher = UJSSearchFactory.use_court("CP")
     results = asyncio.run(cp_searcher.search_name(
         first_name="Ferocity", last_name="Wimbledybear"))
+    
     assert len(results) == 0 
 
 
