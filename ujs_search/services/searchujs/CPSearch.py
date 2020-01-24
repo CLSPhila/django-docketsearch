@@ -307,6 +307,8 @@ class CPSearch(UJSSearch):
             # If there are multiple pages of search results, there will be links at the bottom
             # of the search table. 
             # If there are any such links, fetch the pages they link to.
+
+
             additional_page_links = self.find_additional_page_links(first_search_results_page)
             for link in additional_page_links:
                 additional_results = await self.fetch_cases_from_additional_page(
