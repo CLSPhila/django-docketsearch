@@ -218,7 +218,6 @@ class CPSearch(UJSSearch):
 
         """
         logger.info(f"Fetching page: {link[-12:-6]}")
-        logger.info(f"With viewstate: {viewstate}")
 
         # get the dict for POSTing
         data = self.get_search_pager_form_data(
@@ -229,14 +228,12 @@ class CPSearch(UJSSearch):
             logging.error(f"Fetching {link} failed.")
             return []
 
-        new_viewstate = self.get_viewstate(next_page)
-        logging.info(f"new viewstate: {new_viewstate}")
 
         # parse the result pages.
         results = self.search_results_from_page(next_page)
         logger.info(f"Fetched page: {link[-12:-6]}")
         logger.info(f"  And found {len(results)} new results")
-        return results, new_viewstate
+        return results
 
 
     async def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> dict:
@@ -312,7 +309,7 @@ class CPSearch(UJSSearch):
             # If there are any such links, fetch the pages they link to.
             additional_page_links = self.find_additional_page_links(first_search_results_page)
             for link in additional_page_links:
-                additional_results, viewstate = await self.fetch_cases_from_additional_page(
+                additional_results = await self.fetch_cases_from_additional_page(
                     namesearch_data=search_form_data.copy(), link=link, viewstate=viewstate, nonce=nonce, 
                     session=session, sslcontext=sslcontext)
                 results.extend(additional_results)
