@@ -33,6 +33,23 @@ def test_cp_search_name(monkeypatch, mock_search_results):
         pytest.raises("Search Results missing docket number.")
 
 
+def test_cp_search_name_multiple_pages():
+    first_name = os.environ.get("UJS_SEARCH_TEST_FNAME_MULTIPAGE")
+    last_name = os.environ.get("UJS_SEARCH_TEST_LNAME_MULTIPAGE")
+
+    cp_searcher = UJSSearchFactory.use_court("CP")
+    results = asyncio.run(cp_searcher.search_name(
+        last_name=last_name, first_name=first_name))
+    assert len(results) == int(os.environ["UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"])
+
+    try:
+        for r in results:
+            r.docket_number
+    except AttributeError:
+        pytest.raises("Search Results missing docket number.")
+
+
+
 def test_cp_search_name_no_results(monkeypatch):
 
     def get_results(*args, **kwargs):
