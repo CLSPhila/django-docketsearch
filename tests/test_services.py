@@ -38,6 +38,10 @@ def test_cp_search_name_multiple_pages():
     last_name = os.environ.get("UJS_SEARCH_TEST_LNAME_MULTIPAGE")
 
     cp_searcher = UJSSearchFactory.use_court("CP")
+
+    if os.envrion.get("REAL_NETWORK_TESTS") != "TRUE":
+        # don't run these tests.
+        return
     results = asyncio.run(cp_searcher.search_name(
         last_name=last_name, first_name=first_name))
     assert len(results) == int(os.environ["UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"])
@@ -94,6 +98,34 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
     for r in results:
         for k, v in asdict(r).items():
             assert v.strip() != ""
+
+def test_mdj_search_name_multiple_results(monkeypatch, mock_search_results):
+    mdj_searcher = UJSSearchFactory.use_court("MDJ")
+    first_name = os.environ.get("UJS_SEARCH_TEST_FNAME_MULTIPAGE")
+    last_name = os.environ.get("UJS_SEARCH_TEST_LNAME_MULTIPAGE")
+
+    if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
+        # don't run these tests.
+        return
+ 
+
+    results = asyncio.run(mdj_searcher.search_name(
+        last_name=last_name, 
+        first_name=first_name))
+
+    
+    assert len(results) == os.environ.get("UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT")
+    try:
+        for r in results:
+            r.docket_number
+    except KeyError:
+        pytest.raises("Search Results missing docket number.")
+
+
+    for r in results:
+        for k, v in asdict(r).items():
+            assert v.strip() != ""
+
 
 
 def test_mdj_search_no_results_name(monkeypatch, mock_search_results):

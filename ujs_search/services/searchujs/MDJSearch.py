@@ -50,8 +50,8 @@ class MDJSearch(UJSSearch):
         This same td also has div with display:none. That div has its own table nested inside.
             the first  tr/td has an <a> tag with a link to the Docket.  The second tr/td has an <a> tag with a link to the Summary.
         """
-        page = lxml.html.document_fromstring(page)
-        results_panel = page.xpath("//div[contains(@id, 'pnlResults')]")
+        page_tree = lxml.html.document_fromstring(page)
+        results_panel = page_tree.xpath("//div[contains(@id, 'pnlResults')]")
         if len(results_panel) == 0:
             return []
         assert len(results_panel) == 1, "Did not find one and only one results panel."
@@ -88,10 +88,11 @@ class MDJSearch(UJSSearch):
         summary_urls = []
         for docket in docket_numbers:
             try:
-                summary_url = results_panel.xpath(
+                summary_elements = results_panel.xpath(
                     ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
-                )[0].get("href")
-            except NoSuchElementException:
+                )
+                summary_url = summary_elements[0].get("href")
+            except IndexError as e:
                 summary_url = "Summary URL not found"
             finally:
                 summary_urls.append(summary_url)
@@ -202,8 +203,6 @@ class MDJSearch(UJSSearch):
             assert search_page != "", "Request for search page failed."
 
             logging.info("GOT participant search page")
-            #with open("participantSearch.html", "wb") as f:
-            #    f.write(search_page.content)
 
             nonce = self.get_nonce(search_page)
             assert nonce is not None, "couldn't find nonce on participant search page"
@@ -223,8 +222,6 @@ class MDJSearch(UJSSearch):
             assert search_results_page != "", "Request for search results failed."
             print("GOT search results back")
 
-            #with open("participantSearchResults.html", "wb") as f:
-            #    f.write(search_results_page.content)
 
             results = self.search_results_from_page(search_results_page)
 
