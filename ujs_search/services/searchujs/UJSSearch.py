@@ -47,14 +47,25 @@ class UJSSearch:
                 return ""
 
 
-    async def post(self, session, sslctx, url, data):
+    async def post(self, session, sslctx, url, data, additional_headers = None):
         """
         async method to post data to a url.
         """
-        async with session.post(url, ssl=sslctx, data=data) as response:
+        if additional_headers:
+            headers_to_send = self.__headers__.copy()
+            headers_to_send.update(additional_headers)
+            headers_to_send.pop("Upgrade-Insecure-Requests")
+        else:
+            headers_to_send = self.__headers__
+        async with session.post(url, ssl=sslctx, data=data, headers=headers_to_send) as response:
             if response.status == 200:
                 return await response.text()
             else:
+                # getting the text from the response seems to be neccessary to avoid a bug in openssl (or somewhere else)
+                # with ssl connections closing too soon.
+                #  
+                # use response.request_info to see what was actually requested.
+                txt = await response.text()
                 logger.error(f"POST {url} failed with status {response.status}")
                 return ""
  

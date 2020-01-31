@@ -295,7 +295,6 @@ class CPSearch(UJSSearch):
             # Make the search request.
             first_search_results_page = await self.post(session, sslcontext, self.BASE_URL, search_form_data)
             assert first_search_results_page != "", "Request for search results failed."
-
             nonce = self.get_nonce(first_search_results_page)
             assert nonce is not None, "couldn't find nonce on participant search page"
             
@@ -307,7 +306,6 @@ class CPSearch(UJSSearch):
             # If there are multiple pages of search results, there will be links at the bottom
             # of the search table. 
             # If there are any such links, fetch the pages they link to.
-
 
             additional_page_links = self.find_additional_page_links(first_search_results_page)
             for link in additional_page_links:

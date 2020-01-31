@@ -11,8 +11,8 @@ async def search_by_name_task(
     first_name: str, last_name: str, dob: Optional[date] = None, court: str = "both") -> Dict:
     assert court in (["both"] + UJSSearchFactory.COURTS)
     if court=="both":
-        cp_results = await search_by_name(first_name,last_name,dob,court="CP")
-        mdj_results = await search_by_name(first_name, last_name, dob, court="MDJ")
+        cp_results = await search_by_name_task(first_name,last_name,dob,court="CP")
+        mdj_results = await search_by_name_task(first_name, last_name, dob, court="MDJ")
         results = cp_results
         results.update(mdj_results)
         return results

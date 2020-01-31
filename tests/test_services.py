@@ -39,7 +39,7 @@ def test_cp_search_name_multiple_pages():
 
     cp_searcher = UJSSearchFactory.use_court("CP")
 
-    if os.envrion.get("REAL_NETWORK_TESTS") != "TRUE":
+    if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
         # don't run these tests.
         return
     results = asyncio.run(cp_searcher.search_name(
