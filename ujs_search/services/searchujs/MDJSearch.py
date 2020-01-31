@@ -254,13 +254,15 @@ class MDJSearch(UJSSearch):
             'Origin': 'https://ujsportal.pacourts.us',
             'Referer': 'https://ujsportal.pacourts.us/DocketSheets/MDJ.aspx',
             'Cache-Control': 'no-cache',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
         }
+        # yup, the site will set me change user-agent mid-session.
+        # this is necessary because the ASP Update Panel feature (for updating only part of a page)
+        # only works for certain user agents. 
         next_page =  await self.post(session, sslcontext, self.BASE_URL, data, additional_headers=additional_headers)
         if next_page == "":
             logging.error(f"Fetching {link} failed.")
             return []
-
 
         # parse the result pages.
         results = self.search_results_from_page(next_page)

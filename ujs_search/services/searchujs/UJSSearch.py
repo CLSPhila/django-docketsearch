@@ -54,7 +54,7 @@ class UJSSearch:
         if additional_headers:
             headers_to_send = self.__headers__.copy()
             headers_to_send.update(additional_headers)
-            headers_to_send.pop("Upgrade-Insecure-Requests")
+            #headers_to_send.pop("Upgrade-Insecure-Requests")
         else:
             headers_to_send = self.__headers__
         async with session.post(url, ssl=sslctx, data=data, headers=headers_to_send) as response:
@@ -79,6 +79,7 @@ class UJSSearch:
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Host': 'ujsportal.pacourts.us',
+            #'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
         }
 
     def __init__(self):
