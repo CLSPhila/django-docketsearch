@@ -70,7 +70,8 @@ class UJSSearch:
                 return ""
  
     __headers__ = {
-            'User-Agent': 'CleanSlateScreening',
+            #'User-Agent': 'CleanSlateScreening',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
             'Upgrade-Insecure-Requests': '1',
@@ -79,7 +80,6 @@ class UJSSearch:
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Host': 'ujsportal.pacourts.us',
-            #'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
         }
 
     def __init__(self):
