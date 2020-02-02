@@ -6,6 +6,7 @@ from typing import Optional, Dict
 from .UJSSearchFactory import UJSSearchFactory
 logger = logging.getLogger(__name__)
 from dataclasses import asdict
+import asyncio
 
 async def search_by_name_task(
     first_name: str, last_name: str, dob: Optional[date] = None, court: str = "both") -> Dict:
