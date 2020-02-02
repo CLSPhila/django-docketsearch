@@ -219,6 +219,7 @@ class MDJSearch(UJSSearch):
         namesearch_data.update({
             '__EVENTTARGET': target,
             '__VIEWSTATE': viewstate,
+            '__SCROLLPOSITIONY': 490,
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox': '__/__/____',
             'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
             'ctl00$ctl00$ctl00$ScriptManager': 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$SearchResultsPanel|' + target,
@@ -254,7 +255,7 @@ class MDJSearch(UJSSearch):
             'Origin': 'https://ujsportal.pacourts.us',
             'Referer': 'https://ujsportal.pacourts.us/DocketSheets/MDJ.aspx',
             'Cache-Control': 'no-cache',
-            #'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
         }
         # yup, the site will set me change user-agent mid-session.
         # this is necessary because the ASP Update Panel feature (for updating only part of a page)
@@ -319,6 +320,12 @@ class MDJSearch(UJSSearch):
             assert first_search_results_page != "", "Request for search results failed."
             print("GOT search results back")
 
+
+            nonce = self.get_nonce(first_search_results_page)
+            assert nonce is not None, "couldn't find nonce on first search results page"
+
+            viewstate = self.get_viewstate(first_search_results_page)
+            assert viewstate is not None, "couldn't find viewstate on first search results page"
 
             results = self.search_results_from_page(first_search_results_page)
 

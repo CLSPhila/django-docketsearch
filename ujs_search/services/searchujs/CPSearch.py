@@ -186,6 +186,9 @@ class CPSearch(UJSSearch):
 
         Another function will figure out how to use those strings in POST requests to actually 
         fetch the resources those strings point to.
+
+        N.B. This depends on the User-Agent being something non-standard. For example, a Chrome user-agent will return a page that this function
+        won't match. 
         """
         # TODO There are now two functions that parse the CP search results to an lxml etree. Not DRY!
         page = lxml.html.document_fromstring(page.strip())

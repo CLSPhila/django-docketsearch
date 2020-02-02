@@ -99,7 +99,7 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
         for k, v in asdict(r).items():
             assert v.strip() != ""
 
-def test_mdj_search_name_multiple_results(monkeypatch, mock_search_results):
+def test_mdj_search_name_multiple_pages(monkeypatch, mock_search_results):
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
     first_name = os.environ.get("UJS_SEARCH_TEST_FNAME_MULTIPAGE")
     last_name = os.environ.get("UJS_SEARCH_TEST_LNAME_MULTIPAGE")
