@@ -61,50 +61,60 @@ class MDJSearch(UJSSearch):
 
 
 
-        docket_sheet_urls = []
+        docket_sheet_urls = {}
+        summary_sheet_urls = {}
         for docket in docket_numbers:
-            try:
-                docket_sheet_url = results_panel.xpath(
-                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
-                )[0].get("href")
-            except:
-                docket_sheet_url = "Docket sheet URL not found."
-            finally:
-                docket_sheet_urls.append(docket_sheet_url)
+            urls = [el.get("href" )for el in results_panel.xpath(f"//a[contains(@href,'{docket.text.strip()}')]")]
+            for url in urls:
+                if "SummaryReport" in url:
+                    summary_sheet_urls[docket.text] = url
+                else: 
+                    docket_sheet_urls[docket.text] = url
 
-        summary_urls = []
-        for docket in docket_numbers:
-            try:
-                summary_elements = results_panel.xpath(
-                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
-                )
-                summary_url = summary_elements[0].get("href")
-            except IndexError as e:
-                summary_url = "Summary URL not found"
-            finally:
-                summary_urls.append(summary_url)
+        #     try:
+        #         docket_row = results_panel.xpath(f"../tr[td[contains(text(),'{docket.text.strip()}')]]")[0]
+        #         docket_sheet_url = docket_row.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
+        #         )[0].get("href")
+        #     except:
+        #         docket_sheet_url = "Docket sheet URL not found."
+        #     finally:
+        #         docket_sheet_urls.append(docket_sheet_url)
+
+        # summary_urls = []
+        # for docket in docket_numbers:
+        #     try:
+        #         docket_row = results_panel.xpath(f"../tr[td[contains(text(),'{docket.text.strip()}')]]")[0]
+        #         summary_elements = docket_row.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
+        #         )
+        #         summary_url = summary_elements[0].get("href")
+        #     except IndexError as e:
+        #         summary_url = "Summary URL not found"
+        #     except Exception as e:
+        #         logger.error(e)
+
+        #     finally:
+        #         summary_urls.append(summary_url)
 
         # check that the length of all these lists is the same, so that
         # they get zipped up properly.
         assert len(set(map(len, (
-            docket_numbers, docket_sheet_urls, summary_urls,
-            captions, filing_dates, case_statuses)))) == 1
+            docket_numbers, captions, filing_dates, case_statuses)))) == 1
 
         results = [
             SearchResult(
                 docket_number = dn.text,
-                docket_sheet_url = self.PREFIX_URL + ds,
-                summary_url = self.PREFIX_URL + su,
+                docket_sheet_url = self.PREFIX_URL + docket_sheet_urls[dn.text] if docket_sheet_urls.get(dn.text) else "Docket url not found.",
+                summary_url = self.PREFIX_URL + summary_sheet_urls[dn.text] if summary_sheet_urls.get(dn.text) else "Summary URL not found.",
                 caption = cp.text,
                 filing_date = fd.text,
                 case_status = cs.text,
                 otn = otn.text,
                 dob = dob.text
             )
-            for dn, ds, su, cp, fd, cs, otn, dob in zip(
+            for dn, cp, fd, cs, otn, dob in zip(
                 docket_numbers,
-                docket_sheet_urls,
-                summary_urls,
                 captions,
                 filing_dates,
                 case_statuses,
@@ -133,75 +143,79 @@ class MDJSearch(UJSSearch):
         assert len(results_panel) == 1, "Did not find one and only one results panel."
         results_panel = results_panel[0]
         # Collect the columns of the table of results.
-        docket_numbers = results_panel.xpath(
-        ".//td[2]")
-        captions = results_panel.xpath(
-            ".//td[4]/span")
-        filing_dates = results_panel.xpath(
-            ".//td[5]"
-        )
-        case_statuses = results_panel.xpath(
-            ".//td[7]/span")
-        otns = results_panel.xpath(
-            ".//td[9]/span")
-        dobs = results_panel.xpath(
-            ".//td[12]//span"
-        )
+        return self.search_results_from_table(results_panel)
+
+        # replaced, as long as I don't find additional differences between update panel results and 
+        # the first-page of search results.
+        # docket_numbers = results_panel.xpath(
+        # ".//td[2]")
+        # captions = results_panel.xpath(
+        #     ".//td[4]/span")
+        # filing_dates = results_panel.xpath(
+        #     ".//td[5]"
+        # )
+        # case_statuses = results_panel.xpath(
+        #     ".//td[7]/span")
+        # otns = results_panel.xpath(
+        #     ".//td[9]/span")
+        # dobs = results_panel.xpath(
+        #     ".//td[12]//span"
+        # )
 
 
 
-        docket_sheet_urls = []
-        for docket in docket_numbers:
-            try:
-                docket_sheet_url = results_panel.xpath(
-                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
-                )[0].get("href")
-            except:
-                docket_sheet_url = "Docket sheet URL not found."
-            finally:
-                docket_sheet_urls.append(docket_sheet_url)
+        # docket_sheet_urls = []
+        # for docket in docket_numbers:
+        #     try:
+        #         docket_sheet_url = results_panel.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
+        #         )[0].get("href")
+        #     except:
+        #         docket_sheet_url = "Docket sheet URL not found."
+        #     finally:
+        #         docket_sheet_urls.append(docket_sheet_url)
 
-        summary_urls = []
-        for docket in docket_numbers:
-            try:
-                summary_elements = results_panel.xpath(
-                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
-                )
-                summary_url = summary_elements[0].get("href")
-            except IndexError as e:
-                summary_url = "Summary URL not found"
-            finally:
-                summary_urls.append(summary_url)
+        # summary_urls = []
+        # for docket in docket_numbers:
+        #     try:
+        #         summary_elements = results_panel.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
+        #         )
+        #         summary_url = summary_elements[0].get("href")
+        #     except IndexError as e:
+        #         summary_url = "Summary URL not found"
+        #     finally:
+        #         summary_urls.append(summary_url)
 
-        # check that the length of all these lists is the same, so that
-        # they get zipped up properly.
-        assert len(set(map(len, (
-            docket_numbers, docket_sheet_urls, summary_urls,
-            captions, filing_dates, case_statuses)))) == 1
+        # # check that the length of all these lists is the same, so that
+        # # they get zipped up properly.
+        # assert len(set(map(len, (
+        #     docket_numbers, docket_sheet_urls, summary_urls,
+        #     captions, filing_dates, case_statuses)))) == 1
 
-        results = [
-            SearchResult(
-                docket_number = dn.text,
-                docket_sheet_url = self.PREFIX_URL + ds,
-                summary_url = self.PREFIX_URL + su,
-                caption = cp.text,
-                filing_date = fd.text,
-                case_status = cs.text,
-                otn = otn.text,
-                dob = dob.text
-            )
-            for dn, ds, su, cp, fd, cs, otn, dob in zip(
-                docket_numbers,
-                docket_sheet_urls,
-                summary_urls,
-                captions,
-                filing_dates,
-                case_statuses,
-                otns,
-                dobs,
-            )
-        ]
-        return results
+        # results = [
+        #     SearchResult(
+        #         docket_number = dn.text,
+        #         docket_sheet_url = self.PREFIX_URL + ds,
+        #         summary_url = self.PREFIX_URL + su,
+        #         caption = cp.text,
+        #         filing_date = fd.text,
+        #         case_status = cs.text,
+        #         otn = otn.text,
+        #         dob = dob.text
+        #     )
+        #     for dn, ds, su, cp, fd, cs, otn, dob in zip(
+        #         docket_numbers,
+        #         docket_sheet_urls,
+        #         summary_urls,
+        #         captions,
+        #         filing_dates,
+        #         case_statuses,
+        #         otns,
+        #         dobs,
+        #     )
+        # ]
+        # return results
 
 
 
@@ -235,7 +249,7 @@ class MDJSearch(UJSSearch):
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCaseStatus':'',
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBox':'01/01/1950',
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBoxMaskExtender_ClientState': '',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox':'11/21/2019',
+            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox':self.today,
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBoxMaskExtender_ClientState':'',
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch':'Search',
             '__EVENTTARGET': '',

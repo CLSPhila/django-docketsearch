@@ -123,12 +123,10 @@ def test_mdj_search_name_multiple_pages(monkeypatch, mock_search_results):
         pytest.raises("Search Results missing docket number.")
 
 
-    for r in results:
-        for k, v in asdict(r).items():
-            try:
-                assert v.strip() != ""
-            except Exception as e:
-                breakpoint()
+    all_docket_urls = [res.docket_sheet_url for res in results]
+    compare = all_docket_urls[0]
+    if all([compare == val for val in all_docket_urls]):
+        pytest.fail("All docket urls are the same!")
 
 
 def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
