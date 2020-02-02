@@ -47,19 +47,31 @@ class UJSSearch:
                 return ""
 
 
-    async def post(self, session, sslctx, url, data):
+    async def post(self, session, sslctx, url, data, additional_headers = None):
         """
         async method to post data to a url.
         """
-        async with session.post(url, ssl=sslctx, data=data) as response:
+        if additional_headers:
+            headers_to_send = self.__headers__.copy()
+            headers_to_send.update(additional_headers)
+            #headers_to_send.pop("Upgrade-Insecure-Requests")
+        else:
+            headers_to_send = self.__headers__
+        async with session.post(url, ssl=sslctx, data=data, headers=headers_to_send) as response:
             if response.status == 200:
                 return await response.text()
             else:
+                # getting the text from the response seems to be neccessary to avoid a bug in openssl (or somewhere else)
+                # with ssl connections closing too soon.
+                #  
+                # use response.request_info to see what was actually requested.
+                txt = await response.text()
                 logger.error(f"POST {url} failed with status {response.status}")
                 return ""
  
     __headers__ = {
-            'User-Agent': 'CleanSlateScreening',
+            #'User-Agent': 'CleanSlateScreening',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
             'Upgrade-Insecure-Requests': '1',

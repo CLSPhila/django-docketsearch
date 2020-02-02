@@ -7,7 +7,7 @@ import ssl
 import aiohttp
 import time
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from collections import namedtuple
 from datetime import date
 import csv
@@ -50,8 +50,8 @@ class MDJSearch(UJSSearch):
         This same td also has div with display:none. That div has its own table nested inside.
             the first  tr/td has an <a> tag with a link to the Docket.  The second tr/td has an <a> tag with a link to the Summary.
         """
-        page = lxml.html.document_fromstring(page)
-        results_panel = page.xpath("//div[contains(@id, 'pnlResults')]")
+        page_tree = lxml.html.document_fromstring(page)
+        results_panel = page_tree.xpath("//div[contains(@id, 'pnlResults')]")
         if len(results_panel) == 0:
             return []
         assert len(results_panel) == 1, "Did not find one and only one results panel."
@@ -88,10 +88,11 @@ class MDJSearch(UJSSearch):
         summary_urls = []
         for docket in docket_numbers:
             try:
-                summary_url = results_panel.xpath(
+                summary_elements = results_panel.xpath(
                     ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
-                )[0].get("href")
-            except NoSuchElementException:
+                )
+                summary_url = summary_elements[0].get("href")
+            except IndexError as e:
                 summary_url = "Summary URL not found"
             finally:
                 summary_urls.append(summary_url)
@@ -172,6 +173,103 @@ class MDJSearch(UJSSearch):
         dt.update(changes)
         return dt
 
+    def find_additional_page_links(self, page):
+        """ Given the text of a search results page, find any links to additional results pages.
+
+        A UJS search results page might have paginated results. Give this function the text of the first 
+        page, and it will find strings identifying pages 2 through 5. 
+
+        It will either return a list of those strings, or an empty list, if no additional pages are 
+        found. 
+
+        Another function will figure out how to use those strings in POST requests to actually 
+        fetch the resources those strings point to.
+        """
+        # TODO There are now two functions that parse the CP search results to an lxml etree. Not DRY!
+        page = lxml.html.document_fromstring(page.strip())
+        pagination_span_id = "ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cstPager"
+        # collect the <a> elements that link to the results pages 2-5.
+        xpath_query=f"//span[@id='{pagination_span_id}']/div/a[u[text()='2' or text()='3' or text()='4' or text()='5']]"
+
+        links = page.xpath(xpath_query)
+        links = [l.get('href') for l in links]
+        # The links trigger js postbacks, but all we want (all we can use) is an id for building our own
+        # post request.
+        patt = re.compile(
+            "^javascript:__doPostBack\('(?P<link>.*)',''\)$"
+        )
+        matches = [patt.match(l) for l in links]
+        just_the_important_parts = [m.group('link') for m in matches if m is not None]
+        return just_the_important_parts
+
+
+
+    def get_search_pager_form_data(self, namesearch_data: dict, target: str, viewstate: str, nonce: str):
+        """
+        Get the data to POST to get second, third, and so on pages of search results. 
+
+        This takes the data posted for the original search and slightly modifies it, 
+        in order to get the correct page for the same search.
+
+        Args:
+            name_search_data (dict): The dict that was POSTed to get the first search results. 
+            target (str): the id of the target page to get. 
+        """
+        namesearch_data.pop("ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch")
+        namesearch_data.update({
+            '__EVENTTARGET': target,
+            '__VIEWSTATE': viewstate,
+            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox': '__/__/____',
+            'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
+            'ctl00$ctl00$ctl00$ScriptManager': 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$SearchResultsPanel|' + target,
+            '__ASYNCPOST':'true',
+            '': '',
+        })
+        return namesearch_data
+
+
+    async def fetch_cases_from_additional_page(
+        self, namesearch_data: dict, link: str, viewstate: str, nonce: str, 
+        session, sslcontext) -> Tuple[List[dict], str, str]:
+        """ Given a string identifying a page-2-or-more page of UJS Search results, 
+        fetch the page this string refers to, and parse the cases on that page. 
+
+        Use this link string to build a POST request that fetches a page of search results. 
+
+        Args:
+            link (str): This is a string identifying a page of up to 10 search results for a name.
+
+        """
+        logger.info(f"Fetching page: {link[-12:-6]}")
+        # get the dict for POSTing
+        data = self.get_search_pager_form_data(
+            namesearch_data=namesearch_data, target=link, viewstate=viewstate, nonce=nonce)
+        # do the POST
+        additional_headers = {
+            'Accept': '*/*',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'X-MicrosoftAjax': 'Delta=true',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Origin': 'https://ujsportal.pacourts.us',
+            'Referer': 'https://ujsportal.pacourts.us/DocketSheets/MDJ.aspx',
+            'Cache-Control': 'no-cache',
+            #'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
+        }
+        # yup, the site will set me change user-agent mid-session.
+        # this is necessary because the ASP Update Panel feature (for updating only part of a page)
+        # only works for certain user agents. 
+        next_page =  await self.post(session, sslcontext, self.BASE_URL, data, additional_headers=additional_headers)
+        if next_page == "":
+            logging.error(f"Fetching {link} failed.")
+            return []
+        with open(f"../out_{link[-12:-6]}.html", "w") as f: f.write(next_page)
+        # parse the result pages.
+        results = self.search_results_from_page(next_page)
+        logger.info(f"Fetched page: {link[-12:-6]}")
+        logger.info(f"  And found {len(results)} new results")
+        return results
+
 
 
     async def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> dict:
@@ -202,8 +300,6 @@ class MDJSearch(UJSSearch):
             assert search_page != "", "Request for search page failed."
 
             logging.info("GOT participant search page")
-            #with open("participantSearch.html", "wb") as f:
-            #    f.write(search_page.content)
 
             nonce = self.get_nonce(search_page)
             assert nonce is not None, "couldn't find nonce on participant search page"
@@ -219,14 +315,24 @@ class MDJSearch(UJSSearch):
                 self.CONTROLS.NONCE: nonce,
                 self.CONTROLS.VIEWSTATE: viewstate
             })
-            search_results_page = await self.post(session, sslcontext, self.BASE_URL, data=search_form_data)
-            assert search_results_page != "", "Request for search results failed."
+            first_search_results_page = await self.post(session, sslcontext, self.BASE_URL, data=search_form_data)
+            assert first_search_results_page != "", "Request for search results failed."
             print("GOT search results back")
 
-            #with open("participantSearchResults.html", "wb") as f:
-            #    f.write(search_results_page.content)
 
-            results = self.search_results_from_page(search_results_page)
+            results = self.search_results_from_page(first_search_results_page)
+
+            # If there are multiple pages of search results, there will be links at the bottom
+            # of the search table. 
+            # If there are any such links, fetch the pages they link to.
+            additional_page_links = self.find_additional_page_links(first_search_results_page)
+            for link in additional_page_links:
+                additional_results = await self.fetch_cases_from_additional_page(
+                    namesearch_data=search_form_data.copy(), link=link, 
+                    viewstate=viewstate, session=session, sslcontext=sslcontext,
+                    nonce=nonce)
+                results.extend(additional_results)
+
 
             logging.info(f"Found {len(results)} results")
 
