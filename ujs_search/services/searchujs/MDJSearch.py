@@ -7,7 +7,7 @@ import ssl
 import aiohttp
 import time
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from collections import namedtuple
 from datetime import date
 import csv
@@ -38,25 +38,12 @@ class MDJSearch(UJSSearch):
         DOB = "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox"
 
 
-    def search_results_from_page(self, page: str):
+    def search_results_from_table(self, results_panel: etree.Element) -> List:
         """
-        Given an html page's text, parse w/ lxml.html and return a list of ujs search results.
+        Given a table of case search results from the MDJ portal, parse the cases into a list of dicts.
 
 
-        When search results come back, there's a div w/ id 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_pnlResults'
-        it has tr children for each result.
-        The <td>s under this <tr> have the data on the search result.
-        The first td has the a <table> inside it. That table has a <tr> and a <tbody> that just contains the image for the user to hover over.
-        This same td also has div with display:none. That div has its own table nested inside.
-            the first  tr/td has an <a> tag with a link to the Docket.  The second tr/td has an <a> tag with a link to the Summary.
         """
-        page = lxml.html.document_fromstring(page)
-        results_panel = page.xpath("//div[contains(@id, 'pnlResults')]")
-        if len(results_panel) == 0:
-            return []
-        assert len(results_panel) == 1, "Did not find one and only one results panel."
-        results_panel = results_panel[0]
-        # Collect the columns of the table of results.
         docket_numbers = results_panel.xpath(
         ".//td[2]")
         captions = results_panel.xpath(
@@ -74,49 +61,60 @@ class MDJSearch(UJSSearch):
 
 
 
-        docket_sheet_urls = []
+        docket_sheet_urls = {}
+        summary_sheet_urls = {}
         for docket in docket_numbers:
-            try:
-                docket_sheet_url = results_panel.xpath(
-                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
-                )[0].get("href")
-            except:
-                docket_sheet_url = "Docket sheet URL not found."
-            finally:
-                docket_sheet_urls.append(docket_sheet_url)
+            urls = [el.get("href" )for el in results_panel.xpath(f"//a[contains(@href,'{docket.text.strip()}')]")]
+            for url in urls:
+                if "SummaryReport" in url:
+                    summary_sheet_urls[docket.text] = url
+                else: 
+                    docket_sheet_urls[docket.text] = url
 
-        summary_urls = []
-        for docket in docket_numbers:
-            try:
-                summary_url = results_panel.xpath(
-                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
-                )[0].get("href")
-            except NoSuchElementException:
-                summary_url = "Summary URL not found"
-            finally:
-                summary_urls.append(summary_url)
+        #     try:
+        #         docket_row = results_panel.xpath(f"../tr[td[contains(text(),'{docket.text.strip()}')]]")[0]
+        #         docket_sheet_url = docket_row.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
+        #         )[0].get("href")
+        #     except:
+        #         docket_sheet_url = "Docket sheet URL not found."
+        #     finally:
+        #         docket_sheet_urls.append(docket_sheet_url)
+
+        # summary_urls = []
+        # for docket in docket_numbers:
+        #     try:
+        #         docket_row = results_panel.xpath(f"../tr[td[contains(text(),'{docket.text.strip()}')]]")[0]
+        #         summary_elements = docket_row.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
+        #         )
+        #         summary_url = summary_elements[0].get("href")
+        #     except IndexError as e:
+        #         summary_url = "Summary URL not found"
+        #     except Exception as e:
+        #         logger.error(e)
+
+        #     finally:
+        #         summary_urls.append(summary_url)
 
         # check that the length of all these lists is the same, so that
         # they get zipped up properly.
         assert len(set(map(len, (
-            docket_numbers, docket_sheet_urls, summary_urls,
-            captions, filing_dates, case_statuses)))) == 1
+            docket_numbers, captions, filing_dates, case_statuses)))) == 1
 
         results = [
             SearchResult(
                 docket_number = dn.text,
-                docket_sheet_url = self.PREFIX_URL + ds,
-                summary_url = self.PREFIX_URL + su,
+                docket_sheet_url = self.PREFIX_URL + docket_sheet_urls[dn.text] if docket_sheet_urls.get(dn.text) else "Docket url not found.",
+                summary_url = self.PREFIX_URL + summary_sheet_urls[dn.text] if summary_sheet_urls.get(dn.text) else "Summary URL not found.",
                 caption = cp.text,
                 filing_date = fd.text,
                 case_status = cs.text,
                 otn = otn.text,
                 dob = dob.text
             )
-            for dn, ds, su, cp, fd, cs, otn, dob in zip(
+            for dn, cp, fd, cs, otn, dob in zip(
                 docket_numbers,
-                docket_sheet_urls,
-                summary_urls,
                 captions,
                 filing_dates,
                 case_statuses,
@@ -125,6 +123,99 @@ class MDJSearch(UJSSearch):
             )
         ]
         return results
+
+    def search_results_from_page(self, page: str):
+        """
+        Given an html page's text, parse w/ lxml.html and return a list of ujs search results.
+
+
+        When search results come back, there's a div w/ id 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_pnlResults'
+        it has tr children for each result.
+        The <td>s under this <tr> have the data on the search result.
+        The first td has the a <table> inside it. That table has a <tr> and a <tbody> that just contains the image for the user to hover over.
+        This same td also has div with display:none. That div has its own table nested inside.
+            the first  tr/td has an <a> tag with a link to the Docket.  The second tr/td has an <a> tag with a link to the Summary.
+        """
+        page_tree = lxml.html.document_fromstring(page)
+        results_panel = page_tree.xpath("//div[contains(@id, 'pnlResults')]")
+        if len(results_panel) == 0:
+            return []
+        assert len(results_panel) == 1, "Did not find one and only one results panel."
+        results_panel = results_panel[0]
+        # Collect the columns of the table of results.
+        return self.search_results_from_table(results_panel)
+
+        # replaced, as long as I don't find additional differences between update panel results and 
+        # the first-page of search results.
+        # docket_numbers = results_panel.xpath(
+        # ".//td[2]")
+        # captions = results_panel.xpath(
+        #     ".//td[4]/span")
+        # filing_dates = results_panel.xpath(
+        #     ".//td[5]"
+        # )
+        # case_statuses = results_panel.xpath(
+        #     ".//td[7]/span")
+        # otns = results_panel.xpath(
+        #     ".//td[9]/span")
+        # dobs = results_panel.xpath(
+        #     ".//td[12]//span"
+        # )
+
+
+
+        # docket_sheet_urls = []
+        # for docket in docket_numbers:
+        #     try:
+        #         docket_sheet_url = results_panel.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
+        #         )[0].get("href")
+        #     except:
+        #         docket_sheet_url = "Docket sheet URL not found."
+        #     finally:
+        #         docket_sheet_urls.append(docket_sheet_url)
+
+        # summary_urls = []
+        # for docket in docket_numbers:
+        #     try:
+        #         summary_elements = results_panel.xpath(
+        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
+        #         )
+        #         summary_url = summary_elements[0].get("href")
+        #     except IndexError as e:
+        #         summary_url = "Summary URL not found"
+        #     finally:
+        #         summary_urls.append(summary_url)
+
+        # # check that the length of all these lists is the same, so that
+        # # they get zipped up properly.
+        # assert len(set(map(len, (
+        #     docket_numbers, docket_sheet_urls, summary_urls,
+        #     captions, filing_dates, case_statuses)))) == 1
+
+        # results = [
+        #     SearchResult(
+        #         docket_number = dn.text,
+        #         docket_sheet_url = self.PREFIX_URL + ds,
+        #         summary_url = self.PREFIX_URL + su,
+        #         caption = cp.text,
+        #         filing_date = fd.text,
+        #         case_status = cs.text,
+        #         otn = otn.text,
+        #         dob = dob.text
+        #     )
+        #     for dn, ds, su, cp, fd, cs, otn, dob in zip(
+        #         docket_numbers,
+        #         docket_sheet_urls,
+        #         summary_urls,
+        #         captions,
+        #         filing_dates,
+        #         case_statuses,
+        #         otns,
+        #         dobs,
+        #     )
+        # ]
+        # return results
 
 
 
@@ -158,7 +249,7 @@ class MDJSearch(UJSSearch):
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCaseStatus':'',
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBox':'01/01/1950',
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBoxMaskExtender_ClientState': '',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox':'11/21/2019',
+            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox':self.today,
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBoxMaskExtender_ClientState':'',
             'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch':'Search',
             '__EVENTTARGET': '',
@@ -171,6 +262,125 @@ class MDJSearch(UJSSearch):
         }
         dt.update(changes)
         return dt
+
+    def find_additional_page_links(self, page):
+        """ Given the text of a search results page, find any links to additional results pages.
+
+        A UJS search results page might have paginated results. Give this function the text of the first 
+        page, and it will find strings identifying pages 2 through 5. 
+
+        It will either return a list of those strings, or an empty list, if no additional pages are 
+        found. 
+
+        Another function will figure out how to use those strings in POST requests to actually 
+        fetch the resources those strings point to.
+        """
+        # TODO There are now two functions that parse the CP search results to an lxml etree. Not DRY!
+        page = lxml.html.document_fromstring(page.strip())
+        pagination_span_id = "ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cstPager"
+        # collect the <a> elements that link to the results pages 2-5.
+        xpath_query=f"//span[@id='{pagination_span_id}']/div/a[u[text()='2' or text()='3' or text()='4' or text()='5']]"
+
+        links = page.xpath(xpath_query)
+        links = [l.get('href') for l in links]
+        # The links trigger js postbacks, but all we want (all we can use) is an id for building our own
+        # post request.
+        patt = re.compile(
+            "^javascript:__doPostBack\('(?P<link>.*)',''\)$"
+        )
+        matches = [patt.match(l) for l in links]
+        just_the_important_parts = [m.group('link') for m in matches if m is not None]
+        return just_the_important_parts
+
+
+
+    def get_search_pager_form_data(self, namesearch_data: dict, target: str, viewstate: str, nonce: str) -> dict:
+        """
+        Get the data to POST to get second, third, and so on pages of search results. 
+
+        This takes the data posted for the original search and slightly modifies it, 
+        in order to get the correct page for the same search.
+
+        Args:
+            name_search_data (dict): The dict that was POSTed to get the first search results. 
+            target (str): the id of the target page to get. 
+        """
+        namesearch_data.pop("ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch")
+        namesearch_data.update({
+            '__EVENTTARGET': target,
+            '__VIEWSTATE': viewstate,
+            '__SCROLLPOSITIONY': 490,
+            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox': '__/__/____',
+            'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
+            'ctl00$ctl00$ctl00$ScriptManager': 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$SearchResultsPanel|' + target,
+            '__ASYNCPOST':'true',
+            '': '',
+        })
+        return namesearch_data
+
+    def search_results_from_updatepanel(self, text: str) -> List[dict]:
+        """
+        Given the text of an updatepanel response, return the cases described in that updatepanel
+
+        The updatepanel response is a string of pipe-delimited text. The second line of that text should be 
+        html describing the table of new search results. 
+
+        This method extracts that html table, and then passes it along to a method that extracts the case information
+        from that table.
+        """
+        patt = re.compile(".*updatePanel\|ctl00_ctl00_ctl00_cphMain_cphDynamicContent_SearchResultsPanel\|(?P<table>.*</table>).*", re.S)
+        matches = patt.match(text)
+        if matches is None:
+            return []
+        update_html = matches.group('table')
+        tree = lxml.html.fromstring(update_html)
+        results_table = tree.xpath("//table[@id='ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket']")
+        if len(results_table) != 1:
+            logger.error("update panel did not find results table.")
+            return []
+        results_table = results_table[0]
+        return self.search_results_from_table(results_table)
+
+    async def fetch_cases_from_additional_page(
+        self, namesearch_data: dict, link: str, viewstate: str, nonce: str, 
+        session, sslcontext) -> List[dict]:
+        """ Given a string identifying a page-2-or-more page of UJS Search results, 
+        fetch the page this string refers to, and parse the cases on that page. 
+
+        Use this link string to build a POST request that fetches a page of search results. 
+
+        Args:
+            link (str): This is a string identifying a page of up to 10 search results for a name.
+
+        """
+        logger.info(f"Fetching page: {link[-12:-6]}")
+        # get the dict for POSTing
+        data = self.get_search_pager_form_data(
+            namesearch_data=namesearch_data, target=link, viewstate=viewstate, nonce=nonce)
+        # do the POST
+        additional_headers = {
+            'Accept': '*/*',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'X-MicrosoftAjax': 'Delta=true',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Origin': 'https://ujsportal.pacourts.us',
+            'Referer': 'https://ujsportal.pacourts.us/DocketSheets/MDJ.aspx',
+            'Cache-Control': 'no-cache',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
+        }
+        # yup, the site will set me change user-agent mid-session.
+        # this is necessary because the ASP Update Panel feature (for updating only part of a page)
+        # only works for certain user agents. 
+        next_page =  await self.post(session, sslcontext, self.BASE_URL, data, additional_headers=additional_headers)
+        if next_page == "":
+            logging.error(f"Fetching {link} failed.")
+            return []
+        # parse the result pages.
+        results = self.search_results_from_updatepanel(next_page)
+        logger.info(f"Fetched page: {link[-12:-6]}")
+        logger.info(f"  And found {len(results)} new results")
+        return results
 
 
 
@@ -202,8 +412,6 @@ class MDJSearch(UJSSearch):
             assert search_page != "", "Request for search page failed."
 
             logging.info("GOT participant search page")
-            #with open("participantSearch.html", "wb") as f:
-            #    f.write(search_page.content)
 
             nonce = self.get_nonce(search_page)
             assert nonce is not None, "couldn't find nonce on participant search page"
@@ -219,14 +427,30 @@ class MDJSearch(UJSSearch):
                 self.CONTROLS.NONCE: nonce,
                 self.CONTROLS.VIEWSTATE: viewstate
             })
-            search_results_page = await self.post(session, sslcontext, self.BASE_URL, data=search_form_data)
-            assert search_results_page != "", "Request for search results failed."
+            first_search_results_page = await self.post(session, sslcontext, self.BASE_URL, data=search_form_data)
+            assert first_search_results_page != "", "Request for search results failed."
             print("GOT search results back")
 
-            #with open("participantSearchResults.html", "wb") as f:
-            #    f.write(search_results_page.content)
 
-            results = self.search_results_from_page(search_results_page)
+            nonce = self.get_nonce(first_search_results_page)
+            assert nonce is not None, "couldn't find nonce on first search results page"
+
+            viewstate = self.get_viewstate(first_search_results_page)
+            assert viewstate is not None, "couldn't find viewstate on first search results page"
+
+            results = self.search_results_from_page(first_search_results_page)
+
+            # If there are multiple pages of search results, there will be links at the bottom
+            # of the search table. 
+            # If there are any such links, fetch the pages they link to.
+            additional_page_links = self.find_additional_page_links(first_search_results_page)
+            for link in additional_page_links:
+                additional_results = await self.fetch_cases_from_additional_page(
+                    namesearch_data=search_form_data.copy(), link=link, 
+                    viewstate=viewstate, session=session, sslcontext=sslcontext,
+                    nonce=nonce)
+                results.extend(additional_results)
+
 
             logging.info(f"Found {len(results)} results")
 

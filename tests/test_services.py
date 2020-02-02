@@ -33,6 +33,28 @@ def test_cp_search_name(monkeypatch, mock_search_results):
         pytest.raises("Search Results missing docket number.")
 
 
+def test_cp_search_name_multiple_pages():
+    first_name = os.environ.get("UJS_SEARCH_TEST_FNAME_MULTIPAGE")
+    last_name = os.environ.get("UJS_SEARCH_TEST_LNAME_MULTIPAGE")
+
+    cp_searcher = UJSSearchFactory.use_court("CP")
+
+    if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
+        # don't run these tests.
+        return
+    results = asyncio.run(cp_searcher.search_name(
+        last_name=last_name, first_name=first_name))
+    assert len(results) == int(os.environ["UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"])
+
+
+    try:
+        for r in results:
+            r.docket_number
+    except AttributeError:
+        pytest.raises("Search Results missing docket number.")
+
+
+
 def test_cp_search_name_no_results(monkeypatch):
 
     def get_results(*args, **kwargs):
@@ -77,6 +99,35 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
     for r in results:
         for k, v in asdict(r).items():
             assert v.strip() != ""
+
+def test_mdj_search_name_multiple_pages(monkeypatch, mock_search_results):
+    mdj_searcher = UJSSearchFactory.use_court("MDJ")
+    first_name = os.environ.get("UJS_SEARCH_TEST_FNAME_MULTIPAGE")
+    last_name = os.environ.get("UJS_SEARCH_TEST_LNAME_MULTIPAGE")
+
+    if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
+        # don't run these tests.
+        return
+ 
+
+    results = asyncio.run(mdj_searcher.search_name(
+        last_name=last_name, 
+        first_name=first_name))
+
+
+     
+    assert len(results) == int(os.environ.get("UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"))
+    try:
+        for r in results:
+            r.docket_number
+    except KeyError:
+        pytest.raises("Search Results missing docket number.")
+
+
+    all_docket_urls = [res.docket_sheet_url for res in results]
+    compare = all_docket_urls[0]
+    if all([compare == val for val in all_docket_urls]):
+        pytest.fail("All docket urls are the same!")
 
 
 def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
