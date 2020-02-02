@@ -38,6 +38,82 @@ class MDJSearch(UJSSearch):
         DOB = "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox"
 
 
+    def search_results_from_table(self, results_panel: etree.Element) -> List:
+        """
+        Given a table of case search results from the MDJ portal, parse the cases into a list of dicts.
+
+
+        """
+        docket_numbers = results_panel.xpath(
+        ".//td[2]")
+        captions = results_panel.xpath(
+            ".//td[4]/span")
+        filing_dates = results_panel.xpath(
+            ".//td[5]"
+        )
+        case_statuses = results_panel.xpath(
+            ".//td[7]/span")
+        otns = results_panel.xpath(
+            ".//td[9]/span")
+        dobs = results_panel.xpath(
+            ".//td[12]//span"
+        )
+
+
+
+        docket_sheet_urls = []
+        for docket in docket_numbers:
+            try:
+                docket_sheet_url = results_panel.xpath(
+                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
+                )[0].get("href")
+            except:
+                docket_sheet_url = "Docket sheet URL not found."
+            finally:
+                docket_sheet_urls.append(docket_sheet_url)
+
+        summary_urls = []
+        for docket in docket_numbers:
+            try:
+                summary_elements = results_panel.xpath(
+                    ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
+                )
+                summary_url = summary_elements[0].get("href")
+            except IndexError as e:
+                summary_url = "Summary URL not found"
+            finally:
+                summary_urls.append(summary_url)
+
+        # check that the length of all these lists is the same, so that
+        # they get zipped up properly.
+        assert len(set(map(len, (
+            docket_numbers, docket_sheet_urls, summary_urls,
+            captions, filing_dates, case_statuses)))) == 1
+
+        results = [
+            SearchResult(
+                docket_number = dn.text,
+                docket_sheet_url = self.PREFIX_URL + ds,
+                summary_url = self.PREFIX_URL + su,
+                caption = cp.text,
+                filing_date = fd.text,
+                case_status = cs.text,
+                otn = otn.text,
+                dob = dob.text
+            )
+            for dn, ds, su, cp, fd, cs, otn, dob in zip(
+                docket_numbers,
+                docket_sheet_urls,
+                summary_urls,
+                captions,
+                filing_dates,
+                case_statuses,
+                otns,
+                dobs,
+            )
+        ]
+        return results
+
     def search_results_from_page(self, page: str):
         """
         Given an html page's text, parse w/ lxml.html and return a list of ujs search results.
@@ -204,7 +280,7 @@ class MDJSearch(UJSSearch):
 
 
 
-    def get_search_pager_form_data(self, namesearch_data: dict, target: str, viewstate: str, nonce: str):
+    def get_search_pager_form_data(self, namesearch_data: dict, target: str, viewstate: str, nonce: str) -> dict:
         """
         Get the data to POST to get second, third, and so on pages of search results. 
 
@@ -228,10 +304,32 @@ class MDJSearch(UJSSearch):
         })
         return namesearch_data
 
+    def search_results_from_updatepanel(self, text: str) -> List[dict]:
+        """
+        Given the text of an updatepanel response, return the cases described in that updatepanel
+
+        The updatepanel response is a string of pipe-delimited text. The second line of that text should be 
+        html describing the table of new search results. 
+
+        This method extracts that html table, and then passes it along to a method that extracts the case information
+        from that table.
+        """
+        patt = re.compile(".*updatePanel\|ctl00_ctl00_ctl00_cphMain_cphDynamicContent_SearchResultsPanel\|(?P<table>.*</table>).*", re.S)
+        matches = patt.match(text)
+        if matches is None:
+            return []
+        update_html = matches.group('table')
+        tree = lxml.html.fromstring(update_html)
+        results_table = tree.xpath("//table[@id='ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket']")
+        if len(results_table) != 1:
+            logger.error("update panel did not find results table.")
+            return []
+        results_table = results_table[0]
+        return self.search_results_from_table(results_table)
 
     async def fetch_cases_from_additional_page(
         self, namesearch_data: dict, link: str, viewstate: str, nonce: str, 
-        session, sslcontext) -> Tuple[List[dict], str, str]:
+        session, sslcontext) -> List[dict]:
         """ Given a string identifying a page-2-or-more page of UJS Search results, 
         fetch the page this string refers to, and parse the cases on that page. 
 
@@ -264,9 +362,8 @@ class MDJSearch(UJSSearch):
         if next_page == "":
             logging.error(f"Fetching {link} failed.")
             return []
-        with open(f"../out_{link[-12:-6]}.html", "w") as f: f.write(next_page)
         # parse the result pages.
-        results = self.search_results_from_page(next_page)
+        results = self.search_results_from_updatepanel(next_page)
         logger.info(f"Fetched page: {link[-12:-6]}")
         logger.info(f"  And found {len(results)} new results")
         return results

@@ -113,8 +113,9 @@ def test_mdj_search_name_multiple_pages(monkeypatch, mock_search_results):
         last_name=last_name, 
         first_name=first_name))
 
-    
-    assert len(results) == os.environ.get("UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT")
+
+     
+    assert len(results) == int(os.environ.get("UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"))
     try:
         for r in results:
             r.docket_number
@@ -124,8 +125,10 @@ def test_mdj_search_name_multiple_pages(monkeypatch, mock_search_results):
 
     for r in results:
         for k, v in asdict(r).items():
-            assert v.strip() != ""
-
+            try:
+                assert v.strip() != ""
+            except Exception as e:
+                breakpoint()
 
 
 def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
