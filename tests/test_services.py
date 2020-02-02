@@ -46,6 +46,7 @@ def test_cp_search_name_multiple_pages():
         last_name=last_name, first_name=first_name))
     assert len(results) == int(os.environ["UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"])
 
+
     try:
         for r in results:
             r.docket_number

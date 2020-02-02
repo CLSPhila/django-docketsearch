@@ -79,8 +79,8 @@ class CPSearch(UJSSearch):
         results =  [
             SearchResult(
                 docket_number = dn.text,
-                docket_sheet_url = self.PREFIX_URL + ds.get("href"),
-                summary_url = self.PREFIX_URL + su.get("href"),
+                docket_sheet_url = self.PREFIX_URL + ds.get("href") if dn.text in ds.get("href") else "Docket URL not found",
+                summary_url = self.PREFIX_URL + su.get("href") if dn.text in su.get("href") else "Summary URl not found",
                 caption = cp.text,
                 filing_date = fd.text,
                 case_status = cs.text,
