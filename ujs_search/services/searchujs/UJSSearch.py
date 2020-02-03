@@ -4,7 +4,7 @@ import lxml.html
 import re
 import time
 from typing import List, Optional, Union 
-from datetime import date
+from datetime import date, datetime
 import logging
 
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += 'HIGH:!DH:!aNULL'
@@ -71,7 +71,6 @@ class UJSSearch:
  
     __headers__ = {
             'User-Agent': 'CleanSlateScreening',
-            #'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
             'Upgrade-Insecure-Requests': '1',
@@ -82,12 +81,20 @@ class UJSSearch:
             'Host': 'ujsportal.pacourts.us',
         }
 
-    def __init__(self):
+    def __init__(self, timelimit = float("inf")):
         self.today = date.today().strftime(r"%d/%m/%Y")
         self.sess = requests.Session() # deprecated. need to switch to aio session.
         self.sess.headers.update(self.__headers__)
+        self.starttime = datetime.now()
+        self.timelimit = timelimit
+        self.errors = []
 
 
+    def keep_going(self):
+        """
+        Check if processing has exceeded a predefined time limit.
+        """
+        return (datetime.now() - self.starttime).seconds < self.timelimit
 
     def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> dict:
         raise NotImplementedError

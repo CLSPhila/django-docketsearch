@@ -21,17 +21,27 @@ def test_cp_search_name(monkeypatch, mock_search_results):
         os.environ.get("UJS_SEARCH_TEST_DOB") else date(2001, 1, 1)
 
     cp_searcher = UJSSearchFactory.use_court("CP")
-    results = asyncio.run(cp_searcher.search_name(
+    results, errors = asyncio.run(cp_searcher.search_name(
         last_name=last_name, first_name=first_name, 
         dob=dob))
     assert len(results) > 0 
-
+    assert len(errors) == 0
     try:
         for r in results:
             r.docket_number
     except AttributeError:
         pytest.raises("Search Results missing docket number.")
 
+def test_cp_timeout(monkeypatch, mock_search_results):
+    first_name = os.environ.get("UJS_SEARCH_TEST_FNAME_MULTIPAGE") or "Joe"
+    last_name = os.environ.get("UJS_SEARCH_TEST_LNAME_MULTIPAGE") or "Normal"
+
+    cp_searcher = UJSSearchFactory.use_court("CP", timelimit=0)
+    results, errors = asyncio.run(cp_searcher.search_name(
+        last_name=last_name, first_name=first_name))
+    assert len(results) > 0 
+    assert len(errors) == 1 
+ 
 
 def test_cp_search_name_multiple_pages():
     first_name = os.environ.get("UJS_SEARCH_TEST_FNAME_MULTIPAGE")
@@ -42,7 +52,7 @@ def test_cp_search_name_multiple_pages():
     if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
         # don't run these tests.
         return
-    results = asyncio.run(cp_searcher.search_name(
+    results ,errors = asyncio.run(cp_searcher.search_name(
         last_name=last_name, first_name=first_name))
     assert len(results) == int(os.environ["UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"])
 
@@ -67,7 +77,7 @@ def test_cp_search_name_no_results(monkeypatch):
         logger.warning("Making real network calls in tests.")
 
     cp_searcher = UJSSearchFactory.use_court("CP")
-    results = asyncio.run(cp_searcher.search_name(
+    results, errors = asyncio.run(cp_searcher.search_name(
         first_name="Ferocity", last_name="Wimbledybear"))
     
     assert len(results) == 0 
@@ -82,13 +92,14 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
 
  
 
-    results = asyncio.run(mdj_searcher.search_name(
+    results, errors = asyncio.run(mdj_searcher.search_name(
         last_name=last_name, 
         first_name=first_name, 
         dob=dob))
 
     
     assert len(results) > 0
+    assert len(errors) == 0 
     try:
         for r in results:
             r.docket_number
@@ -110,7 +121,7 @@ def test_mdj_search_name_multiple_pages(monkeypatch, mock_search_results):
         return
  
 
-    results = asyncio.run(mdj_searcher.search_name(
+    results, errors = asyncio.run(mdj_searcher.search_name(
         last_name=last_name, 
         first_name=first_name))
 
@@ -143,7 +154,7 @@ def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
     last_name = "NotARealPerson"
     dob = date(2001, 1, 1)
 
-    results = asyncio.run(mdj_searcher.search_name(
+    results, errors = asyncio.run(mdj_searcher.search_name(
         last_name=last_name, 
         first_name=first_name, 
         dob=dob))

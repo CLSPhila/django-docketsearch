@@ -13,7 +13,7 @@ class UJSSearchFactory:
     COURTS = [CP, MDJ]
 
     @classmethod
-    def use_court(cls, court: str) -> UJSSearch:
+    def use_court(cls, court: str, **kwargs) -> UJSSearch:
         """
         Return the UJS Searcher the the given court.
 
@@ -26,8 +26,8 @@ class UJSSearchFactory:
         assert court in cls.COURTS, f"{court} is not a court we can search!"
         if court == cls.CP:
             from .CPSearch import CPSearch
-            return CPSearch()
+            return CPSearch(**kwargs)
         else:
             from .MDJSearch import MDJSearch
-            return MDJSearch()
+            return MDJSearch(**kwargs)
 

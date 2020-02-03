@@ -9,18 +9,21 @@ from dataclasses import asdict
 import asyncio
 
 async def search_by_name_task(
-    first_name: str, last_name: str, dob: Optional[date] = None, court: str = "both") -> Dict:
+    first_name: str, last_name: str, dob: Optional[date] = None, court: str = "both", timelimit = float("Inf")) -> Dict:
     assert court in (["both"] + UJSSearchFactory.COURTS)
     if court=="both":
-        cp_results = await search_by_name_task(first_name,last_name,dob,court="CP")
-        mdj_results = await search_by_name_task(first_name, last_name, dob, court="MDJ")
+        cp_results, cp_errors = await search_by_name_task(first_name,last_name,dob,court="CP", timelimit=timelimit)
+        mdj_results, mdj_errors = await search_by_name_task(first_name, last_name, dob, court="MDJ", timelimit=timelimit)
         results = cp_results
+        errors = cp_errors
         results.update(mdj_results)
-        return results
+        errors.update(mdj_errors)
+        return results, errors
  
-    searcher = UJSSearchFactory.use_court(court)
-    results = [asdict(r) for r in await searcher.search_name(first_name, last_name, dob)]
-    return {court: results}
+    searcher = UJSSearchFactory.use_court(court, timelimit)
+    results, errors = await searcher.search_name(first_name, last_name, dob)
+    #results = [asdict(r), errs for r, errs in await searcher.search_name(first_name, last_name, dob)]
+    return {court: results}, {court: errors}
 
 def search_by_name(*args, **kwargs) -> Dict:
     """
@@ -28,8 +31,8 @@ def search_by_name(*args, **kwargs) -> Dict:
 
     Return the results as a list of dicts. 
     """
-    results = asyncio.run(search_by_name_task(*args, **kwargs))
-    return results
+    results, errors = asyncio.run(search_by_name_task(*args, **kwargs))
+    return results, errors
 
 
     

@@ -16,6 +16,7 @@ class SearchName(generics.CreateAPIView):
     queryset = []
     serializer_class = NameSearchSerializer
     permission_classes = appsettings.PERMISSION_CLASSES
+    timelimit = appsettings.TIMELIMIT
 
     def get(self, request, *args, **kwargs):
         try:
@@ -23,9 +24,10 @@ class SearchName(generics.CreateAPIView):
             if to_search.is_valid():
                 # search ujs portal for a name.
                 # and return the results.
-                results = searchujs.search_by_name(**to_search.validated_data)
+                results, errors = searchujs.search_by_name(**to_search.validated_data, timelimit=timelimit)
                 return Response({
-                    "searchResults": results
+                    "searchResults": results,
+                    "errors": errors,
                 })
             else:
                 return Response({
@@ -44,9 +46,10 @@ class SearchName(generics.CreateAPIView):
             if to_search.is_valid():
                 # search ujs portal for a name.
                 # and return the results.
-                results = searchujs.search_by_name(**to_search.validated_data)
+                results, errors = searchujs.search_by_name(**to_search.validated_data, timelimit=timelimit)
                 return Response({
-                    "searchResults": results
+                    "searchResults": results,
+                    "errors": errors,
                 })
             else:
                 return Response({

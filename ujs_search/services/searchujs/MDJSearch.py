@@ -384,7 +384,21 @@ class MDJSearch(UJSSearch):
 
 
 
-    async def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> dict:
+    async def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> Tuple[List, List]:
+        """
+        Search the MDJ court for dockets relating to a person.
+
+        Args:
+            first_name (str): Person's first name
+            last_name (str): Last name
+            dob (Optional[date]): Person's date of birth, or None.
+
+        Returns:
+            A tuple with - 
+            List of search results, and 
+            List of errors or empty list.
+
+        """
         if dob:
             dob = dob.strftime(r"%m/%d/%Y")
         sslcontext = ssl.create_default_context()
@@ -444,7 +458,11 @@ class MDJSearch(UJSSearch):
             # of the search table. 
             # If there are any such links, fetch the pages they link to.
             additional_page_links = self.find_additional_page_links(first_search_results_page)
+
             for link in additional_page_links:
+                if self.keep_going() is False:
+                    self.errors.append(f"too many results to process in {self.timelimit} seconds")
+                    break
                 additional_results = await self.fetch_cases_from_additional_page(
                     namesearch_data=search_form_data.copy(), link=link, 
                     viewstate=viewstate, session=session, sslcontext=sslcontext,
@@ -454,7 +472,7 @@ class MDJSearch(UJSSearch):
 
             logging.info(f"Found {len(results)} results")
 
-            return results
+            return results, self.errors 
 
 
     def parse_docket_number(self, dn: str) -> DocketNumber:

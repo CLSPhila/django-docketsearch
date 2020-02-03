@@ -27,7 +27,7 @@ def mock_search_results(monkeypatch):
                     'dob': '1/11/1940',
                     'filing_date':'1/1/2000',
                 }), 
-            ]
+            ], []
 
     if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
         logger.info("Monkeypatching network calls.")
