@@ -20,8 +20,9 @@ async def search_by_name_task(
         errors.update(mdj_errors)
         return results, errors
  
-    searcher = UJSSearchFactory.use_court(court, timelimit)
+    searcher = UJSSearchFactory.use_court(court, timelimit=timelimit)
     results, errors = await searcher.search_name(first_name, last_name, dob)
+    results = [asdict(r) for in results]
     #results = [asdict(r), errs for r, errs in await searcher.search_name(first_name, last_name, dob)]
     return {court: results}, {court: errors}
 

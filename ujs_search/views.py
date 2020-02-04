@@ -24,7 +24,7 @@ class SearchName(generics.CreateAPIView):
             if to_search.is_valid():
                 # search ujs portal for a name.
                 # and return the results.
-                results, errors = searchujs.search_by_name(**to_search.validated_data, timelimit=timelimit)
+                results, errors = searchujs.search_by_name(**to_search.validated_data, timelimit=self.timelimit)
                 return Response({
                     "searchResults": results,
                     "errors": errors,
@@ -46,7 +46,7 @@ class SearchName(generics.CreateAPIView):
             if to_search.is_valid():
                 # search ujs portal for a name.
                 # and return the results.
-                results, errors = searchujs.search_by_name(**to_search.validated_data, timelimit=timelimit)
+                results, errors = searchujs.search_by_name(**to_search.validated_data, timelimit=self.timelimit)
                 return Response({
                     "searchResults": results,
                     "errors": errors,
