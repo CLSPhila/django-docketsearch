@@ -61,6 +61,7 @@ class UJSSearch:
             if response.status == 200:
                 return await response.text()
             else:
+                breakpoint()
                 # getting the text from the response seems to be neccessary to avoid a bug in openssl (or somewhere else)
                 # with ssl connections closing too soon.
                 #  
@@ -83,7 +84,7 @@ class UJSSearch:
         }
 
     def __init__(self):
-        self.today = date.today().strftime(r"%d/%m/%Y")
+        self.today = date.today().strftime(r"%m/%d/%Y")
         self.sess = requests.Session() # deprecated. need to switch to aio session.
         self.sess.headers.update(self.__headers__)
 
