@@ -82,7 +82,7 @@ class UJSSearch:
         }
 
     def __init__(self, timelimit = float("inf")):
-        self.today = date.today().strftime(r"%d/%m/%Y")
+        self.today = date.today().strftime(r"%m/%d/%Y")
         self.sess = requests.Session() # deprecated. need to switch to aio session.
         self.sess.headers.update(self.__headers__)
         self.starttime = datetime.now()

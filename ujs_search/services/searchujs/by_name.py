@@ -22,7 +22,7 @@ async def search_by_name_task(
  
     searcher = UJSSearchFactory.use_court(court, timelimit=timelimit)
     results, errors = await searcher.search_name(first_name, last_name, dob)
-    results = [asdict(r) for in results]
+    results = [asdict(r) for r in results]
     #results = [asdict(r), errs for r, errs in await searcher.search_name(first_name, last_name, dob)]
     return {court: results}, {court: errors}
 
