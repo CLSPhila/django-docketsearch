@@ -286,7 +286,7 @@ class MDJSearch(UJSSearch):
         # The links trigger js postbacks, but all we want (all we can use) is an id for building our own
         # post request.
         patt = re.compile(
-            "^javascript:__doPostBack\('(?P<link>.*)',''\)$"
+            r"^javascript:__doPostBack\('(?P<link>.*)',''\)$"
         )
         matches = [patt.match(l) for l in links]
         just_the_important_parts = [m.group('link') for m in matches if m is not None]
@@ -328,7 +328,7 @@ class MDJSearch(UJSSearch):
         This method extracts that html table, and then passes it along to a method that extracts the case information
         from that table.
         """
-        patt = re.compile(".*updatePanel\|ctl00_ctl00_ctl00_cphMain_cphDynamicContent_SearchResultsPanel\|(?P<table>.*</table>).*", re.S)
+        patt = re.compile(r".*updatePanel\|ctl00_ctl00_ctl00_cphMain_cphDynamicContent_SearchResultsPanel\|(?P<table>.*</table>).*", re.S)
         matches = patt.match(text)
         if matches is None:
             return []

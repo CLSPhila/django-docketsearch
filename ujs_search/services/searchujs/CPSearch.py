@@ -201,7 +201,7 @@ class CPSearch(UJSSearch):
         # The links trigger js postbacks, but all we want (all we can use) is an id for building our own
         # post request.
         patt = re.compile(
-            "^javascript:__doPostBack\('(?P<link>.*)',''\)$"
+            r"^javascript:__doPostBack\('(?P<link>.*)',''\)$"
         )
         matches = [patt.match(l) for l in links]
         just_the_important_parts = [m.group('link') for m in matches if m is not None]
