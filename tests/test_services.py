@@ -87,7 +87,6 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
         first_name=first_name, 
         dob=dob))
 
-    
     assert len(results) > 0
     try:
         for r in results:
