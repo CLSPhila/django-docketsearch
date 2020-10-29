@@ -82,7 +82,7 @@ def test_cp_search_name_no_results(monkeypatch):
         logger.warning("Making real network calls in tests.")
 
     cp_searcher = UJSSearchFactory.use_court("CP")
-    results = asyncio.run(
+    results, errs = asyncio.run(
         cp_searcher.search_name(first_name="Ferocity", last_name="Wimbledybear")
     )
 

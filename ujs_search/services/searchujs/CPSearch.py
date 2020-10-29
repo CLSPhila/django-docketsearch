@@ -381,7 +381,7 @@ class CPSearch(UJSSearch):
             for link in additional_page_links:
                 (
                     additional_results,
-                    addtional_errs,
+                    additional_errs,
                 ) = await self.fetch_cases_from_additional_page(
                     namesearch_data=search_form_data.copy(),
                     link=link,
