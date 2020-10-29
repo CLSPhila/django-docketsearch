@@ -1,4 +1,4 @@
-from rest_framework.response import Response 
+from rest_framework.response import Response
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.views import APIView
 from rest_framework import generics
@@ -10,7 +10,7 @@ from .services import searchujs
 
 logger = logging.getLogger(__name__)
 
-#class SearchName(APIView):
+# class SearchName(APIView):
 class SearchName(generics.CreateAPIView):
 
     queryset = []
@@ -24,19 +24,13 @@ class SearchName(generics.CreateAPIView):
                 # search ujs portal for a name.
                 # and return the results.
                 results = searchujs.search_by_name(**to_search.validated_data)
-                return Response({
-                    "searchResults": results
-                })
+                return Response({"searchResults": results})
             else:
-                return Response({
-                    "errors": to_search.errors
-                }, status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"errors": to_search.errors}, status.HTTP_400_BAD_REQUEST
+                )
         except Exception as ex:
-            return Response({
-                "errors": [str(ex)]
-            })
-
-       
+            return Response({"errors": [str(ex)]})
 
     def post(self, request, *args, **kwargs):
         try:
@@ -45,41 +39,32 @@ class SearchName(generics.CreateAPIView):
                 # search ujs portal for a name.
                 # and return the results.
                 results = searchujs.search_by_name(**to_search.validated_data)
-                return Response({
-                    "searchResults": results
-                })
+                return Response({"searchResults": results})
             else:
-                return Response({
-                    "errors": to_search.errors
-                }, status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"errors": to_search.errors}, status.HTTP_400_BAD_REQUEST
+                )
         except Exception as ex:
-            return Response({
-                "errors": [str(ex)]
-            })
+            return Response({"errors": [str(ex)]})
+
 
 class SearchDocket(generics.CreateAPIView):
-
 
     queryset = []
     serializer_class = DocketSearchSerializer
     permission_classes = appsettings.PERMISSION_CLASSES
 
     def post(self, request, *args, **kwargs):
-        try: 
-            search_data = DocketSearchSerializer(data = request.data)
+        try:
+            search_data = DocketSearchSerializer(data=request.data)
             if search_data.is_valid():
                 search_data = search_data.validated_data
                 docket_number = search_data["docket_number"]
-                return Response({
-                    "searchResults": searchujs.search_by_docket(docket_number)
-                })
+                return Response(
+                    {"searchResults": searchujs.search_by_docket(docket_number)}
+                )
             else:
-                return Response({
-                    "errors": search_data.errors
-                })
-
+                return Response({"errors": search_data.errors})
 
         except Exception as ex:
-            return Response({
-                "errors": [str(ex)]
-            })
+            return Response({"errors": [str(ex)]})
