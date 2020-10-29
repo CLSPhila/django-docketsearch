@@ -7,7 +7,7 @@ import ssl
 import aiohttp
 import time
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from collections import namedtuple
 from datetime import date
 import csv
@@ -15,8 +15,7 @@ import ujs_search
 import os
 
 logger = logging.getLogger(__name__)
-DocketNumber = namedtuple('DocketNumber', 'court county office dkt_type sequence year')
-
+DocketNumber = namedtuple("DocketNumber", "court county office dkt_type sequence year")
 
 
 class MDJSearch(UJSSearch):
@@ -28,6 +27,7 @@ class MDJSearch(UJSSearch):
         """
         Constants identifying form fields that are submitted to UJS.
         """
+
         # name
         SEARCH_TYPE = "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$ddlSearchType"
         NONCE = "ctl00$ctl00$ctl00$ctl07$captchaAnswer"
@@ -37,81 +37,56 @@ class MDJSearch(UJSSearch):
         FIRST_NAME = "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$txtFirstName"
         DOB = "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox"
 
-
-    def search_results_from_table(self, results_panel: etree.Element) -> List:
+    def search_results_from_table(
+        self, results_panel: etree.Element
+    ) -> List[SearchResult]:
         """
         Given a table of case search results from the MDJ portal, parse the cases into a list of dicts.
 
 
         """
-        docket_numbers = results_panel.xpath(
-        ".//td[2]")
-        captions = results_panel.xpath(
-            ".//td[4]/span")
-        filing_dates = results_panel.xpath(
-            ".//td[5]"
-        )
-        case_statuses = results_panel.xpath(
-            ".//td[7]/span")
-        otns = results_panel.xpath(
-            ".//td[9]/span")
-        dobs = results_panel.xpath(
-            ".//td[12]//span"
-        )
-
-
+        docket_numbers = results_panel.xpath(".//td[2]")
+        captions = results_panel.xpath(".//td[4]/span")
+        filing_dates = results_panel.xpath(".//td[5]")
+        case_statuses = results_panel.xpath(".//td[7]/span")
+        otns = results_panel.xpath(".//td[9]/span")
+        dobs = results_panel.xpath(".//td[12]//span")
 
         docket_sheet_urls = {}
         summary_sheet_urls = {}
         for docket in docket_numbers:
-            urls = [el.get("href" )for el in results_panel.xpath(f"//a[contains(@href,'{docket.text.strip()}')]")]
+            urls = [
+                el.get("href")
+                for el in results_panel.xpath(
+                    f"//a[contains(@href,'{docket.text.strip()}')]"
+                )
+            ]
             for url in urls:
                 if "SummaryReport" in url:
                     summary_sheet_urls[docket.text] = url
-                else: 
+                else:
                     docket_sheet_urls[docket.text] = url
-
-        #     try:
-        #         docket_row = results_panel.xpath(f"../tr[td[contains(text(),'{docket.text.strip()}')]]")[0]
-        #         docket_sheet_url = docket_row.xpath(
-        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
-        #         )[0].get("href")
-        #     except:
-        #         docket_sheet_url = "Docket sheet URL not found."
-        #     finally:
-        #         docket_sheet_urls.append(docket_sheet_url)
-
-        # summary_urls = []
-        # for docket in docket_numbers:
-        #     try:
-        #         docket_row = results_panel.xpath(f"../tr[td[contains(text(),'{docket.text.strip()}')]]")[0]
-        #         summary_elements = docket_row.xpath(
-        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
-        #         )
-        #         summary_url = summary_elements[0].get("href")
-        #     except IndexError as e:
-        #         summary_url = "Summary URL not found"
-        #     except Exception as e:
-        #         logger.error(e)
-
-        #     finally:
-        #         summary_urls.append(summary_url)
-
         # check that the length of all these lists is the same, so that
         # they get zipped up properly.
-        assert len(set(map(len, (
-            docket_numbers, captions, filing_dates, case_statuses)))) == 1
+        assert (
+            len(set(map(len, (docket_numbers, captions, filing_dates, case_statuses))))
+            == 1
+        )
 
         results = [
             SearchResult(
-                docket_number = dn.text,
-                docket_sheet_url = self.PREFIX_URL + docket_sheet_urls[dn.text] if docket_sheet_urls.get(dn.text) else "Docket url not found.",
-                summary_url = self.PREFIX_URL + summary_sheet_urls[dn.text] if summary_sheet_urls.get(dn.text) else "Summary URL not found.",
-                caption = cp.text,
-                filing_date = fd.text,
-                case_status = cs.text,
-                otn = otn.text,
-                dob = dob.text
+                docket_number=dn.text,
+                docket_sheet_url=self.PREFIX_URL + docket_sheet_urls[dn.text]
+                if docket_sheet_urls.get(dn.text)
+                else "Docket url not found.",
+                summary_url=self.PREFIX_URL + summary_sheet_urls[dn.text]
+                if summary_sheet_urls.get(dn.text)
+                else "Summary URL not found.",
+                caption=cp.text,
+                filing_date=fd.text,
+                case_status=cs.text,
+                otn=otn.text,
+                dob=dob.text,
             )
             for dn, cp, fd, cs, otn, dob in zip(
                 docket_numbers,
@@ -124,7 +99,7 @@ class MDJSearch(UJSSearch):
         ]
         return results
 
-    def search_results_from_page(self, page: str):
+    def search_results_from_page(self, page: str) -> List[SearchResult]:
         """
         Given an html page's text, parse w/ lxml.html and return a list of ujs search results.
 
@@ -145,196 +120,131 @@ class MDJSearch(UJSSearch):
         # Collect the columns of the table of results.
         return self.search_results_from_table(results_panel)
 
-        # replaced, as long as I don't find additional differences between update panel results and 
-        # the first-page of search results.
-        # docket_numbers = results_panel.xpath(
-        # ".//td[2]")
-        # captions = results_panel.xpath(
-        #     ".//td[4]/span")
-        # filing_dates = results_panel.xpath(
-        #     ".//td[5]"
-        # )
-        # case_statuses = results_panel.xpath(
-        #     ".//td[7]/span")
-        # otns = results_panel.xpath(
-        #     ".//td[9]/span")
-        # dobs = results_panel.xpath(
-        #     ".//td[12]//span"
-        # )
-
-
-
-        # docket_sheet_urls = []
-        # for docket in docket_numbers:
-        #     try:
-        #         docket_sheet_url = results_panel.xpath(
-        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun1']//a"
-        #         )[0].get("href")
-        #     except:
-        #         docket_sheet_url = "Docket sheet URL not found."
-        #     finally:
-        #         docket_sheet_urls.append(docket_sheet_url)
-
-        # summary_urls = []
-        # for docket in docket_numbers:
-        #     try:
-        #         summary_elements = results_panel.xpath(
-        #             ".//tr[@id = 'ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket_ctl02_ucPrintControl_printMenun2']//a"
-        #         )
-        #         summary_url = summary_elements[0].get("href")
-        #     except IndexError as e:
-        #         summary_url = "Summary URL not found"
-        #     finally:
-        #         summary_urls.append(summary_url)
-
-        # # check that the length of all these lists is the same, so that
-        # # they get zipped up properly.
-        # assert len(set(map(len, (
-        #     docket_numbers, docket_sheet_urls, summary_urls,
-        #     captions, filing_dates, case_statuses)))) == 1
-
-        # results = [
-        #     SearchResult(
-        #         docket_number = dn.text,
-        #         docket_sheet_url = self.PREFIX_URL + ds,
-        #         summary_url = self.PREFIX_URL + su,
-        #         caption = cp.text,
-        #         filing_date = fd.text,
-        #         case_status = cs.text,
-        #         otn = otn.text,
-        #         dob = dob.text
-        #     )
-        #     for dn, ds, su, cp, fd, cs, otn, dob in zip(
-        #         docket_numbers,
-        #         docket_sheet_urls,
-        #         summary_urls,
-        #         captions,
-        #         filing_dates,
-        #         case_statuses,
-        #         otns,
-        #         dobs,
-        #     )
-        # ]
-        # return results
-
-
-
-    def get_select_person_search_data(self, changes):
+    def get_select_person_search_data(self, changes: Dict[str, str]) -> Dict[str, str]:
         """
-        Get a dict with the keys/values for telling the site that we would like to search for a person's 
+        Get a dict with the keys/values for telling the site that we would like to search for a person's
         name.
         """
         dt = {
-            '__EVENTTARGET': self.CONTROLS.SEARCH_TYPE,
-            '__EVENTARGUMENT': '',
-            '__LASTFOCUS': '',
-            '__VIEWSTATEGENERATOR': '4AB257F3',
-            '__SCROLLPOSITIONX': 0,
-            '__SCROLLPOSITIONY': 0,
-            self.CONTROLS.SEARCH_TYPE: 'ParticipantName',
-            self.CONTROLS.COUNTY: '',
+            "__EVENTTARGET": self.CONTROLS.SEARCH_TYPE,
+            "__EVENTARGUMENT": "",
+            "__LASTFOCUS": "",
+            "__VIEWSTATEGENERATOR": "4AB257F3",
+            "__SCROLLPOSITIONX": 0,
+            "__SCROLLPOSITIONY": 0,
+            self.CONTROLS.SEARCH_TYPE: "ParticipantName",
+            self.CONTROLS.COUNTY: "",
         }
         dt.update(changes)
         return dt
 
-    def get_search_form_data(self, changes):
+    def get_search_form_data(self, changes: Dict[str, str]) -> Dict[str, str]:
         dt = {
-            self.CONTROLS.SEARCH_TYPE: 'ParticipantName',
-            self.CONTROLS.LAST_NAME: '',
-            self.CONTROLS.FIRST_NAME: '',
-            self.CONTROLS.DOB: '',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBoxMaskExtender_ClientState': '',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCounty':'',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlDocketType':'',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCaseStatus':'',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBox':'01/01/1950',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBoxMaskExtender_ClientState': '',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox':self.today,
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBoxMaskExtender_ClientState':'',
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch':'Search',
-            '__EVENTTARGET': '',
-            '__EVENTARGUMENT': '',
-            '__LASTFOCUS':'',
-            '__VIEWSTATEGENERATOR': '4AB257F3',
-            '__SCROLLPOSITIONX': 0,
-            '__SCROLLPOSITIONY': 0,
-            self.CONTROLS.NONCE: '',
+            self.CONTROLS.SEARCH_TYPE: "ParticipantName",
+            self.CONTROLS.LAST_NAME: "",
+            self.CONTROLS.FIRST_NAME: "",
+            self.CONTROLS.DOB: "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBoxMaskExtender_ClientState": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCounty": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlDocketType": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$ddlCaseStatus": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBox": "01/01/1950",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$beginDateChildControl$DateTextBoxMaskExtender_ClientState": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBox": self.today,
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$DateFiledDateRangePicker$endDateChildControl$DateTextBoxMaskExtender_ClientState": "",
+            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch": "Search",
+            "__EVENTTARGET": "",
+            "__EVENTARGUMENT": "",
+            "__LASTFOCUS": "",
+            "__VIEWSTATEGENERATOR": "4AB257F3",
+            "__SCROLLPOSITIONX": 0,
+            "__SCROLLPOSITIONY": 0,
+            self.CONTROLS.NONCE: "",
         }
         dt.update(changes)
         return dt
 
-    def find_additional_page_links(self, page):
-        """ Given the text of a search results page, find any links to additional results pages.
+    def find_additional_page_links(self, page: str) -> List[str]:
+        """Given the text of a search results page, find any links to additional results pages.
 
-        A UJS search results page might have paginated results. Give this function the text of the first 
-        page, and it will find strings identifying pages 2 through 5. 
+        A UJS search results page might have paginated results. Give this function the text of the first
+        page, and it will find strings identifying pages 2 through 5.
 
-        It will either return a list of those strings, or an empty list, if no additional pages are 
-        found. 
+        It will either return a list of those strings, or an empty list, if no additional pages are
+        found.
 
-        Another function will figure out how to use those strings in POST requests to actually 
+        Another function will figure out how to use those strings in POST requests to actually
         fetch the resources those strings point to.
         """
         # TODO There are now two functions that parse the CP search results to an lxml etree. Not DRY!
         page = lxml.html.document_fromstring(page.strip())
         pagination_span_id = "ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cstPager"
         # collect the <a> elements that link to the results pages 2-5.
-        xpath_query=f"//span[@id='{pagination_span_id}']/div/a[u[text()='2' or text()='3' or text()='4' or text()='5']]"
+        xpath_query = f"//span[@id='{pagination_span_id}']/div/a[u[text()='2' or text()='3' or text()='4' or text()='5']]"
 
         links = page.xpath(xpath_query)
-        links = [l.get('href') for l in links]
+        links = [l.get("href") for l in links]
         # The links trigger js postbacks, but all we want (all we can use) is an id for building our own
         # post request.
-        patt = re.compile(
-            r"^javascript:__doPostBack\('(?P<link>.*)',''\)$"
-        )
+        patt = re.compile(r"^javascript:__doPostBack\('(?P<link>.*)',''\)$")
         matches = [patt.match(l) for l in links]
-        just_the_important_parts = [m.group('link') for m in matches if m is not None]
+        just_the_important_parts = [m.group("link") for m in matches if m is not None]
         return just_the_important_parts
 
-
-
-    def get_search_pager_form_data(self, namesearch_data: dict, target: str, viewstate: str, nonce: str) -> dict:
+    def get_search_pager_form_data(
+        self, namesearch_data: dict, target: str, viewstate: str, nonce: str
+    ) -> Dict[str, str]:
         """
-        Get the data to POST to get second, third, and so on pages of search results. 
+        Get the data to POST to get second, third, and so on pages of search results.
 
-        This takes the data posted for the original search and slightly modifies it, 
+        This takes the data posted for the original search and slightly modifies it,
         in order to get the correct page for the same search.
 
         Args:
-            name_search_data (dict): The dict that was POSTed to get the first search results. 
-            target (str): the id of the target page to get. 
+            name_search_data (dict): The dict that was POSTed to get the first search results.
+            target (str): the id of the target page to get.
+
+        Returns:
+            dictionary of data to send back to server.
         """
         namesearch_data.pop("ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch")
-        namesearch_data.update({
-            '__EVENTTARGET': target,
-            '__VIEWSTATE': viewstate,
-            '__SCROLLPOSITIONY': 490,
-            'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox': '__/__/____',
-            'ctl00$ctl00$ctl00$ctl07$captchaAnswer': nonce,
-            'ctl00$ctl00$ctl00$ScriptManager': 'ctl00$ctl00$ctl00$cphMain$cphDynamicContent$SearchResultsPanel|' + target,
-            '__ASYNCPOST':'true',
-            '': '',
-        })
+        namesearch_data.update(
+            {
+                "__EVENTTARGET": target,
+                "__VIEWSTATE": viewstate,
+                "__SCROLLPOSITIONY": 490,
+                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsParticipantName$dpDOB$DateTextBox": "__/__/____",
+                "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
+                "ctl00$ctl00$ctl00$ScriptManager": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$SearchResultsPanel|"
+                + target,
+                "__ASYNCPOST": "true",
+                "": "",
+            }
+        )
         return namesearch_data
 
-    def search_results_from_updatepanel(self, text: str) -> List[dict]:
+    def search_results_from_updatepanel(self, text: str) -> List[SearchResult]:
         """
         Given the text of an updatepanel response, return the cases described in that updatepanel
 
-        The updatepanel response is a string of pipe-delimited text. The second line of that text should be 
-        html describing the table of new search results. 
+        The updatepanel response is a string of pipe-delimited text. The second line of that text should be
+        html describing the table of new search results.
 
         This method extracts that html table, and then passes it along to a method that extracts the case information
         from that table.
         """
-        patt = re.compile(r".*updatePanel\|ctl00_ctl00_ctl00_cphMain_cphDynamicContent_SearchResultsPanel\|(?P<table>.*</table>).*", re.S)
+        patt = re.compile(
+            r".*updatePanel\|ctl00_ctl00_ctl00_cphMain_cphDynamicContent_SearchResultsPanel\|(?P<table>.*</table>).*",
+            re.S,
+        )
         matches = patt.match(text)
         if matches is None:
             return []
-        update_html = matches.group('table')
+        update_html = matches.group("table")
         tree = lxml.html.fromstring(update_html)
-        results_table = tree.xpath("//table[@id='ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket']")
+        results_table = tree.xpath(
+            "//table[@id='ctl00_ctl00_ctl00_cphMain_cphDynamicContent_cphResults_gvDocket']"
+        )
         if len(results_table) != 1:
             logger.error("update panel did not find results table.")
             return []
@@ -342,120 +252,180 @@ class MDJSearch(UJSSearch):
         return self.search_results_from_table(results_table)
 
     async def fetch_cases_from_additional_page(
-        self, namesearch_data: dict, link: str, viewstate: str, nonce: str, 
-        session, sslcontext) -> List[dict]:
-        """ Given a string identifying a page-2-or-more page of UJS Search results, 
-        fetch the page this string refers to, and parse the cases on that page. 
+        self,
+        namesearch_data: dict,
+        link: str,
+        viewstate: str,
+        nonce: str,
+        session,
+        sslcontext,
+    ) -> Tuple[List[dict], List[str]]:
+        """Given a string identifying a page-2-or-more page of UJS Search results,
+        fetch the page this string refers to, and parse the cases on that page.
 
-        Use this link string to build a POST request that fetches a page of search results. 
+        Use this link string to build a POST request that fetches a page of search results.
 
         Args:
             link (str): This is a string identifying a page of up to 10 search results for a name.
 
         """
+        errs = []
         logger.info(f"Fetching page: {link[-12:-6]}")
         # get the dict for POSTing
         data = self.get_search_pager_form_data(
-            namesearch_data=namesearch_data, target=link, viewstate=viewstate, nonce=nonce)
+            namesearch_data=namesearch_data,
+            target=link,
+            viewstate=viewstate,
+            nonce=nonce,
+        )
         # do the POST
         additional_headers = {
-            'Accept': '*/*',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'X-MicrosoftAjax': 'Delta=true',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Origin': 'https://ujsportal.pacourts.us',
-            'Referer': 'https://ujsportal.pacourts.us/DocketSheets/MDJ.aspx',
-            'Cache-Control': 'no-cache',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36',
+            "Accept": "*/*",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "X-MicrosoftAjax": "Delta=true",
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": "https://ujsportal.pacourts.us",
+            "Referer": "https://ujsportal.pacourts.us/DocketSheets/MDJ.aspx",
+            "Cache-Control": "no-cache",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36",
         }
         # yup, the site will set me change user-agent mid-session.
         # this is necessary because the ASP Update Panel feature (for updating only part of a page)
-        # only works for certain user agents. 
-        next_page =  await self.post(session, sslcontext, self.BASE_URL, data, additional_headers=additional_headers)
+        # only works for certain user agents.
+        next_page, next_page_errs = await self.post(
+            session,
+            sslcontext,
+            self.BASE_URL,
+            data,
+            additional_headers=additional_headers,
+        )
         if next_page == "":
-            logging.error(f"Fetching {link} failed.")
-            return []
+            err = f"Fetching {link} failed."
+            return [err]
         # parse the result pages.
         results = self.search_results_from_updatepanel(next_page)
         logger.info(f"Fetched page: {link[-12:-6]}")
         logger.info(f"  And found {len(results)} new results")
-        return results
+        return results, errs
 
+    async def search_name(
+        self, first_name: str, last_name: str, dob: Optional[date] = None
+    ) -> Tuple[List[SearchResult], List[str]]:
+        """
+        Search The MDJ Portal for a person's name.
 
-
-    async def search_name(self, first_name: str, last_name: str, dob: Optional[date] = None) -> dict:
+        Returns:
+            A tuple. Item 0 is a
+        """
         if dob:
             dob = dob.strftime(r"%m/%d/%Y")
         sslcontext = ssl.create_default_context()
         sslcontext.set_ciphers("HIGH:!DH:!aNULL")
         headers = self.__headers__
+        errs = []
         async with aiohttp.ClientSession(headers=headers) as session:
-            #request the main page
-            main_page = await self.fetch(session, sslcontext, self.BASE_URL)
-            assert main_page != "", "Request for landing page failed."
+            # request the main page
+            main_page, main_page_errs = await self.fetch(
+                session, sslcontext, self.BASE_URL
+            )
+            errs.extend(main_page_errs)
+            if main_page == "":
+                errs.append("Request for landing page failed.")
+                return list(), errs
             logger.info("GOT main page")
 
             nonce = self.get_nonce(main_page)
-            assert nonce is not None, "couldn't find nonce on main page."
+            if nonce is None:
+                errs.append("couldn't find nonce on main page.")
+                return list(), errs
 
             viewstate = self.get_viewstate(main_page)
-            assert viewstate is not None, "couldn't find viewstate on main page"
+            if viewstate is None:
+                errs.append("couldn't find viewstate on main page")
+                return list(), errs
 
             # request the name search page
-            select_person_search_data = self.get_select_person_search_data({
-                self.CONTROLS.NONCE: nonce,
-                self.CONTROLS.VIEWSTATE: viewstate,
-            })
+            select_person_search_data = self.get_select_person_search_data(
+                {
+                    self.CONTROLS.NONCE: nonce,
+                    self.CONTROLS.VIEWSTATE: viewstate,
+                }
+            )
 
-            search_page = await self.post(session, sslcontext, self.BASE_URL,select_person_search_data)
-            assert search_page != "", "Request for search page failed."
+            search_page, search_page_errs = await self.post(
+                session, sslcontext, self.BASE_URL, select_person_search_data
+            )
+            errs.extend(search_page_errs)
+            if search_page == "":
+                errs.append("Request for search page failed.")
+                return list(), errs
 
             logging.info("GOT participant search page")
 
             nonce = self.get_nonce(search_page)
-            assert nonce is not None, "couldn't find nonce on participant search page"
+            if nonce is None:
+                errs.append("couldn't find nonce on participant search page")
+                return list(), errs
 
             viewstate = self.get_viewstate(search_page)
-            assert viewstate is not None, "couldn't find viewstate on person search page"
+            if viewstate is None:
+                errs.append("couldn't find viewstate on person search page")
+                return list(), errs
 
             # request the search results.
-            search_form_data = self.get_search_form_data({
-                self.CONTROLS.FIRST_NAME: first_name, 
-                self.CONTROLS.LAST_NAME: last_name, 
-                self.CONTROLS.DOB: dob or "",
-                self.CONTROLS.NONCE: nonce,
-                self.CONTROLS.VIEWSTATE: viewstate
-            })
-            first_search_results_page = await self.post(session, sslcontext, self.BASE_URL, data=search_form_data)
-            assert first_search_results_page != "", "Request for search results failed."
-            print("GOT search results back")
-
+            search_form_data = self.get_search_form_data(
+                {
+                    self.CONTROLS.FIRST_NAME: first_name,
+                    self.CONTROLS.LAST_NAME: last_name,
+                    self.CONTROLS.DOB: dob or "",
+                    self.CONTROLS.NONCE: nonce,
+                    self.CONTROLS.VIEWSTATE: viewstate,
+                }
+            )
+            first_search_results_page, page_results_errs = await self.post(
+                session, sslcontext, self.BASE_URL, data=search_form_data
+            )
+            errs.extend(page_results_errs)
+            if first_search_results_page == "":
+                errs.append("Request for search results failed.")
+                return list(), errs
 
             nonce = self.get_nonce(first_search_results_page)
-            assert nonce is not None, "couldn't find nonce on first search results page"
+            if nonce is None:
+                errs.append("couldn't find nonce on first search results page")
+                return list(), errs
 
             viewstate = self.get_viewstate(first_search_results_page)
-            assert viewstate is not None, "couldn't find viewstate on first search results page"
+            if viewstate is None:
+                errs.append("couldn't find viewstate on first search results page")
+                return list(), errs
 
             results = self.search_results_from_page(first_search_results_page)
 
             # If there are multiple pages of search results, there will be links at the bottom
-            # of the search table. 
+            # of the search table.
             # If there are any such links, fetch the pages they link to.
-            additional_page_links = self.find_additional_page_links(first_search_results_page)
+            additional_page_links = self.find_additional_page_links(
+                first_search_results_page
+            )
             for link in additional_page_links:
-                additional_results = await self.fetch_cases_from_additional_page(
-                    namesearch_data=search_form_data.copy(), link=link, 
-                    viewstate=viewstate, session=session, sslcontext=sslcontext,
-                    nonce=nonce)
+                (
+                    additional_results,
+                    additional_errors,
+                ) = await self.fetch_cases_from_additional_page(
+                    namesearch_data=search_form_data.copy(),
+                    link=link,
+                    viewstate=viewstate,
+                    session=session,
+                    sslcontext=sslcontext,
+                    nonce=nonce,
+                )
                 results.extend(additional_results)
-
-
+                errs.extend(additional_errors)
             logging.info(f"Found {len(results)} results")
 
-            return results
-
+            return results, errs
 
     def parse_docket_number(self, dn: str) -> DocketNumber:
         """
@@ -466,16 +436,16 @@ class MDJSearch(UJSSearch):
         if not matches:
             raise ValueError(f"{dn} was not a correctly formatted docket number.")
         return DocketNumber(
-            court = matches.group('court'),
-            county = matches.group('county'),
-            office = matches.group('office'),
-            dkt_type = matches.group('dkt_type'),
-            sequence = matches.group('sequence'),
-            year = matches.group('year'),
-            )
+            court=matches.group("court"),
+            county=matches.group("county"),
+            office=matches.group("office"),
+            dkt_type=matches.group("dkt_type"),
+            sequence=matches.group("sequence"),
+            year=matches.group("year"),
+        )
 
     def lookup_county(self, county_code, office_code):
-        """ Maps county numbers from a docket number (41, 20, etc.) to county
+        """Maps county numbers from a docket number (41, 20, etc.) to county
         names.
 
 
@@ -503,7 +473,9 @@ class MDJSearch(UJSSearch):
         """
         full_five_digits = "{}{}".format(county_code, office_code)
 
-        lookup_table_path = os.path.join(os.path.split(ujs_search.__file__)[0], "reference/county_lookup.csv")
+        lookup_table_path = os.path.join(
+            os.path.split(ujs_search.__file__)[0], "reference/county_lookup.csv"
+        )
 
         with open(lookup_table_path, "r") as f:
             reader = csv.DictReader(f)
@@ -512,7 +484,8 @@ class MDJSearch(UJSSearch):
                 if re.match(row["regex"], full_five_digits):
                     matches.append(row["County"])
         assert len(matches) <= 1, "Error: Found multiple matches for {}".format(
-            full_five_digits)
+            full_five_digits
+        )
         if len(matches) == 0:
             return None
         return matches[0]
@@ -537,9 +510,9 @@ class MDJSearch(UJSSearch):
 
         MDJ docket numbers include a five-digit code that's the concatenation of the county and office codes
         for a case. But for whatever reason, the POST requires that if the county code starts w/ a 0, the
-        leading 0 gets cut. 
+        leading 0 gets cut.
 
-        For ex., Alleheny is 05, so while a docket might have the number MD-05101-CR-1234567-2020, the 
+        For ex., Alleheny is 05, so while a docket might have the number MD-05101-CR-1234567-2020, the
         POST requires the 05101 to be shortened to 5101.
         """
         return f"{county.lstrip('0')}{office}"
@@ -547,68 +520,105 @@ class MDJSearch(UJSSearch):
     def get_select_office_data(self, base, county, office, nonce, viewstate):
 
         office_code = self.combine_office_code(county, office)
-       
-        base.update({
-            "__VIEWSTATE": viewstate,
-            "__EVENTTARGET": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice",
-            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice": office_code,
-            "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
-        })
-        return base
 
+        base.update(
+            {
+                "__VIEWSTATE": viewstate,
+                "__EVENTTARGET": "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice",
+                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlCourtOffice": office_code,
+                "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
+            }
+        )
+        return base
 
     def get_docket_search_data(self, base, dn, nonce, viewstate):
-        base.update({
-            "__EVENTTARGET":"",
-            "__VIEWSTATE": viewstate,
-            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlDocketType": dn.dkt_type,
-            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$txtSequenceNumber": dn.sequence,
-            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$txtYear": dn.year,
-            "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch": "Search",
-            "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
-        })
+        base.update(
+            {
+                "__EVENTTARGET": "",
+                "__VIEWSTATE": viewstate,
+                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$ddlDocketType": dn.dkt_type,
+                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$txtSequenceNumber": dn.sequence,
+                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$cphSearchControls$udsDocketNumber$txtYear": dn.year,
+                "ctl00$ctl00$ctl00$cphMain$cphDynamicContent$btnSearch": "Search",
+                "ctl00$ctl00$ctl00$ctl07$captchaAnswer": nonce,
+            }
+        )
         return base
 
-    async def search_docket_number(self, docket_number: str) -> dict:
+    async def search_docket_number(
+        self, docket_number: str
+    ) -> Tuple[List[SearchResult], List[str]]:
+        """
+        Search MDJ portal for a single docket by its docket number.
+
+        Returns:
+            A list of Search Results (hopefully just one.)
+            List of errors.
+        """
         docket_number = docket_number.upper()
         dn = self.parse_docket_number(docket_number)
         county_name = self.lookup_county(dn.county, dn.office)
         sslcontext = ssl.create_default_context()
         sslcontext.set_ciphers("HIGH:!DH:!aNULL")
+        errs = []
         async with aiohttp.ClientSession(headers=self.__headers__) as session:
 
             # parse the components of the docket number.
 
             # get the main page
-            main_page = await self.fetch(session, sslcontext, self.BASE_URL)
-            if main_page == "": return [{"errors": "Failed to get main page"}]
+            main_page, main_errs = await self.fetch(session, sslcontext, self.BASE_URL)
+            errs.extend(main_errs)
+            if main_page == "":
+                errs.append("Failed to get the main search page")
+                return [], errs
 
             # select the county
             viewstate = self.get_viewstate(main_page)
             nonce = self.get_nonce(main_page)
-            county_select_data = self.get_select_county_data(county = county_name, nonce = nonce, viewstate = viewstate)
-            county_select_page = await self.post(
-                session, sslcontext, self.BASE_URL, data = county_select_data)
-            if county_select_page == "": return [{"errors": "Failed to select county"}]
+            county_select_data = self.get_select_county_data(
+                county=county_name, nonce=nonce, viewstate=viewstate
+            )
+            county_select_page, county_errs = await self.post(
+                session, sslcontext, self.BASE_URL, data=county_select_data
+            )
+            errs.extend(county_errs)
+
+            if county_select_page == "":
+                errs.append("Failed to fetch county errors")
+                return [], errs
 
             # select the court office
             viewstate = self.get_viewstate(county_select_page)
             nonce = self.get_nonce(county_select_page)
             office_select_data = self.get_select_office_data(
-                base = county_select_data, office = dn.office, county=dn.county, nonce=nonce, viewstate=viewstate)           
-            office_select_page = await self.post(
-                session, sslcontext, self.BASE_URL, data=office_select_data)
-            if office_select_page == "": return [{"errors": "Failed to select office"}]
+                base=county_select_data,
+                office=dn.office,
+                county=dn.county,
+                nonce=nonce,
+                viewstate=viewstate,
+            )
+            office_select_page, office_page_errs = await self.post(
+                session, sslcontext, self.BASE_URL, data=office_select_data
+            )
+            errs.extend(office_page_errs)
+            if office_select_page == "":
+                errs.append("Failed to select office")
+                return [], errs
 
             # POST the search
             viewstate = self.get_viewstate(office_select_page)
             nonce = self.get_nonce(office_select_page)
             docket_search_data = self.get_docket_search_data(
-                office_select_data, dn, nonce=nonce, viewstate=viewstate)
-            docket_search_page = await self.post(
-                session, sslcontext, self.BASE_URL, data=docket_search_data)
-            if docket_search_page == "": return [{"errors": "Failed to get search results page"}]
+                office_select_data, dn, nonce=nonce, viewstate=viewstate
+            )
+            docket_search_page, docket_page_errs = await self.post(
+                session, sslcontext, self.BASE_URL, data=docket_search_data
+            )
+            errs.extend(docket_page_errs)
+            if docket_search_page == "":
+                errs.append("Failed to get search results page")
+                return [], errs
 
             # parse the results.
             results = self.search_results_from_page(docket_search_page)
-            return results
+            return results, errs

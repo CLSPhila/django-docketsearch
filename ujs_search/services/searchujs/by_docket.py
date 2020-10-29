@@ -37,10 +37,12 @@ def search_by_docket(docket_number):
     # loop = asyncio.get_event_loop()
     # results = loop.run_until_complete(searcher.search_docket_number(docket_number))
     try:
-        results = asyncio.run(searcher.search_docket_number(docket_number.upper()))
-        return [asdict(r) for r in results]
-    except:
-        return []
+        results, errs = asyncio.run(
+            searcher.search_docket_number(docket_number.upper())
+        )
+        return [asdict(r) for r in results], errs
+    except Exception as err:
+        return [], [str(err)]
 
 
 """ NB - to implement a search_by_multiple_dockets, using async, we should prob. use a semaphor to limit 

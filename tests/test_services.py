@@ -23,7 +23,7 @@ def test_by_name(monkeypatch, mock_search_results):
         if os.environ.get("UJS_SEARCH_TEST_DOB")
         else date(2001, 1, 1)
     )
-    results = search_by_name(first_name, last_name, dob)
+    results, errs = search_by_name(first_name, last_name, dob)
     assert len(results["CP"]) >= 0
     assert len(results["MDJ"]) >= 0
 
@@ -38,7 +38,7 @@ def test_cp_search_name(monkeypatch, mock_search_results):
     )
 
     cp_searcher = UJSSearchFactory.use_court("CP")
-    results = asyncio.run(
+    results, errs = asyncio.run(
         cp_searcher.search_name(last_name=last_name, first_name=first_name, dob=dob)
     )
     assert len(results) > 0
@@ -59,7 +59,7 @@ def test_cp_search_name_multiple_pages():
     if os.environ.get("REAL_NETWORK_TESTS") != "TRUE":
         # don't run these tests.
         return
-    results = asyncio.run(
+    results, errs = asyncio.run(
         cp_searcher.search_name(last_name=last_name, first_name=first_name)
     )
     assert len(results) == int(os.environ["UJS_SEARCH_TEST_MULTIPAGE_RESULTCOUNT"])
@@ -99,7 +99,7 @@ def test_mdj_search_name(monkeypatch, mock_search_results):
         else date(2001, 1, 1)
     )
 
-    results = asyncio.run(
+    results, errs = asyncio.run(
         mdj_searcher.search_name(last_name=last_name, first_name=first_name, dob=dob)
     )
 
@@ -124,7 +124,7 @@ def test_mdj_search_name_multiple_pages(monkeypatch, mock_search_results):
         # don't run these tests.
         return
 
-    results = asyncio.run(
+    results, errs = asyncio.run(
         mdj_searcher.search_name(last_name=last_name, first_name=first_name)
     )
 
@@ -154,10 +154,11 @@ def test_mdj_search_no_results_name(monkeypatch, mock_search_results):
     last_name = "NotARealPerson"
     dob = date(2001, 1, 1)
 
-    results = asyncio.run(
+    results, errs = asyncio.run(
         mdj_searcher.search_name(last_name=last_name, first_name=first_name, dob=dob)
     )
     assert len(results) == 0
+    assert len(errs) == 0
 
 
 def test_parse_cp_docket_number():
@@ -181,8 +182,9 @@ def test_cp_search_docket(monkeypatch, mock_search_results):
     cp_searcher = UJSSearchFactory.use_court("CP")
     # loop = asyncio.get_event_loop()
     # results = loop.run_until_complete(cp_searcher.search_docket_number(dn))
-    results = asyncio.run(cp_searcher.search_docket_number(dn))
+    results, errs = asyncio.run(cp_searcher.search_docket_number(dn))
     assert len(results) == 1
+    assert len(errs) == 0
 
 
 def test_mdj_search_docket(monkeypatch, mock_search_results):
@@ -194,5 +196,6 @@ def test_mdj_search_docket(monkeypatch, mock_search_results):
     mdj_searcher = UJSSearchFactory.use_court("MDJ")
     # loop = asyncio.get_event_loop()
     # results = loop.run_until_complete(mdj_searcher.search_docket_number(dn))
-    results = asyncio.run(mdj_searcher.search_docket_number(dn))
+    results, errs = asyncio.run(mdj_searcher.search_docket_number(dn))
     assert len(results) == 1
+    assert len(errs) == 0

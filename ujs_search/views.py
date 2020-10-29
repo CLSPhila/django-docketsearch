@@ -23,8 +23,8 @@ class SearchName(generics.CreateAPIView):
             if to_search.is_valid():
                 # search ujs portal for a name.
                 # and return the results.
-                results = searchujs.search_by_name(**to_search.validated_data)
-                return Response({"searchResults": results})
+                results, errs = searchujs.search_by_name(**to_search.validated_data)
+                return Response({"searchResults": results, "errors": errs})
             else:
                 return Response(
                     {"errors": to_search.errors}, status.HTTP_400_BAD_REQUEST
@@ -38,8 +38,8 @@ class SearchName(generics.CreateAPIView):
             if to_search.is_valid():
                 # search ujs portal for a name.
                 # and return the results.
-                results = searchujs.search_by_name(**to_search.validated_data)
-                return Response({"searchResults": results})
+                results, errs = searchujs.search_by_name(**to_search.validated_data)
+                return Response({"searchResults": results, "errors": errs})
             else:
                 return Response(
                     {"errors": to_search.errors}, status.HTTP_400_BAD_REQUEST
@@ -60,9 +60,8 @@ class SearchDocket(generics.CreateAPIView):
             if search_data.is_valid():
                 search_data = search_data.validated_data
                 docket_number = search_data["docket_number"]
-                return Response(
-                    {"searchResults": searchujs.search_by_docket(docket_number)}
-                )
+                results, errs = searchujs.search_by_docket(docker_number)
+                return Response({"searchResults": results, "errors": errs})
             else:
                 return Response({"errors": search_data.errors})
 
