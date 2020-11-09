@@ -354,7 +354,7 @@ class CPSearch(UJSSearch):
             first_search_results_page, first_results_errs = await self.post(
                 session, sslcontext, self.BASE_URL, search_form_data
             )
-            errs.append(first_results_errs)
+            errs.extend(first_results_errs)
             if first_search_results_page == "":
                 errs.append("Request for search results failed.")
                 return list(), errs

@@ -54,6 +54,7 @@ def test_search_name_w_post(monkeypatch, setup_tests, api_rf, name_search_data):
     v = setup_view(SearchName(), req)
     resp = v.post(req)
     assert resp.status_code == 200
+    assert resp.data["errors"] == []
 
 
 def test_search_cp_docket_number(monkeypatch, setup_tests, api_rf):
