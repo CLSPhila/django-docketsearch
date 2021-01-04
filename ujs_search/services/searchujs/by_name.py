@@ -40,7 +40,14 @@ def search_by_name(*args, **kwargs) -> Dict:
     """
     Search the CP or MDJ sites for public records relating to a person's name.
 
-    Return the results as a list of dicts.
+    Args:
+        first_name (str): First name of person to search
+        last_name (str): Last name
+        dob (date): Birth date, optional
+        court: Optionally identify the court to search in. (MDJ, CP, or 'both'). If blank, 'both' is the default.
+
+    Returns:
+        the results as a list of dicts.
     """
     results, errs = asyncio.run(search_by_name_task(*args, **kwargs))
     return results, errs
