@@ -1,4 +1,8 @@
+import re
 from rest_framework import serializers as S
+
+
+court_pattern = re.compile(r"^(?:CP|MDJ|both)$", re.I)
 
 
 class NameSearchSerializer(S.Serializer):
@@ -9,7 +13,7 @@ class NameSearchSerializer(S.Serializer):
     first_name = S.CharField(required=True)
     last_name = S.CharField(required=True)
     dob = S.DateField(required=False, default=None)
-    court = S.CharField(required=False)
+    court = S.RegexField(court_pattern, required=False)
 
 
 class DocketSearchSerializer(S.Serializer):
