@@ -67,3 +67,30 @@ class SearchDocket(generics.CreateAPIView):
 
         except Exception as ex:
             return Response({"errors": [str(ex)]})
+
+
+class SearchMultipleDockets(generics.CreateAPIView):
+
+    queryset = []
+    serializer_class = MultipleDocketSearchSerializer
+    permission_classes = appsettings.PERMISSION_CLASSES
+
+    def post(self, request, *args, **kwargs):
+        try:
+            search_data = MultipleDocketSearchSerializer(data=request.data)
+            if search_data.is_valid():
+                search_data = search_data.validated_data
+                results = dict()
+                results["dockets"] = []
+                errs = []
+                for docket_number in search_data["docket_numbers"]:
+                    docket_number = search_data["docket_number"]
+                    res, err = searchujs.search_by_docket(docker_number)
+                    results["dockets"].append(res),
+                    errs.append(err)
+                return Response({"searchResults": results, "errors": errs})
+            else:
+                return Response({"errors": search_data.errors})
+
+        except Exception as ex:
+            return Response({"errors": [str(ex)]})

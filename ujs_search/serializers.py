@@ -24,3 +24,11 @@ class DocketSearchSerializer(S.Serializer):
     """
 
     docket_number = S.CharField(required=True)
+
+
+class MultipleDocketSearchSerializer(S.Serializer):
+    """
+    Validata json asking to search for a particular docket number.
+    """
+
+    docket_numbers = S.ListField(child=S.CharField(required=True), allow_empty=True)
