@@ -64,7 +64,7 @@ class SearchDocket(generics.CreateAPIView):
             if search_data.is_valid():
                 search_data = search_data.validated_data
                 docket_number = search_data["docket_number"]
-                results, errs = searchujs.search_by_docket(docker_number)
+                results, errs = searchujs.search_by_docket(docket_number)
                 return Response({"searchResults": results, "errors": errs})
             else:
                 return Response({"errors": search_data.errors})
@@ -88,7 +88,8 @@ class SearchMultipleDockets(generics.CreateAPIView):
                 results["dockets"] = []
                 errs = []
                 for docket_number in search_data["docket_numbers"]:
-                    res, err = searchujs.search_by_docket(docker_number)
+                    docket_number = search_data["docket_number"]
+                    res, err = searchujs.search_by_docket(docket_number)
                     results["dockets"].append(res),
                     errs.append(err)
                 return Response({"searchResults": results, "errors": errs})
