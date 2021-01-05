@@ -5,7 +5,11 @@ from rest_framework import generics
 from rest_framework import status
 import logging
 from . import appsettings
-from .serializers import NameSearchSerializer, DocketSearchSerializer
+from .serializers import (
+    NameSearchSerializer,
+    DocketSearchSerializer,
+    MultipleDocketSearchSerializer,
+)
 from .services import searchujs
 
 logger = logging.getLogger(__name__)
