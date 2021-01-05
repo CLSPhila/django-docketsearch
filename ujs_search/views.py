@@ -88,7 +88,6 @@ class SearchMultipleDockets(generics.CreateAPIView):
                 results["dockets"] = []
                 errs = []
                 for docket_number in search_data["docket_numbers"]:
-                    docket_number = search_data["docket_number"]
                     res, err = searchujs.search_by_docket(docker_number)
                     results["dockets"].append(res),
                     errs.append(err)
