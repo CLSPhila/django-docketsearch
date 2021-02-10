@@ -41,18 +41,30 @@ class UJSSearch:
             return match.group("viewstate")
         return None
 
-    async def fetch(self, session, sslctx, url):
+    def get_request_verification_token(self, text: str) -> str:
+        """
+        Find the request verification token in a text
+        """
+        match = re.search(
+            r"input name=\"__RequestVerificationToken\" type=\"hidden\" value=\"(?P<token>[\-0-9a-zA-Z_]+)\"",
+            text,
+        )
+        if match:
+            return match.group("token")
+        return ""
+
+    async def fetch(self, url):
         """
         async method to fetch a url
         """
-        async with session.get(url, ssl=sslctx) as response:
+        async with self.sess.get(url) as response:
             if response.status == 200:
                 return (await response.text(), [])
             else:
                 err = f"GET {url} failed with {response.status}"
                 return "", [err]
 
-    async def post(self, session, sslctx, url, data, additional_headers=None):
+    async def post(self, url, data, additional_headers=None):
         """
         async method to post data to a url.
         """
@@ -62,9 +74,7 @@ class UJSSearch:
             # headers_to_send.pop("Upgrade-Insecure-Requests")
         else:
             headers_to_send = self.__headers__
-        async with session.post(
-            url, ssl=sslctx, data=data, headers=headers_to_send
-        ) as response:
+        async with self.sess.post(url, data=data, headers=headers_to_send) as response:
             if response.status == 200:
                 return (await response.text(), [])
             else:
@@ -89,16 +99,13 @@ class UJSSearch:
         "Host": "ujsportal.pacourts.us",
     }
 
-    def __init__(self):
+    def __init__(self, session):
+        """
+        Create the UJS Search helper.
+
+        Args:
+            session: a session object. Create with a context manager.
+        """
         self.today = date.today().strftime(r"%m/%d/%Y")
-        self.sess = aiohttp.ClientSession()
+        self.sess = session
         # self.sess = requests.Session()  # deprecated. need to switch to aio session.
-        self.sess.headers.update(self.__headers__)
-
-    def search_name(
-        self, first_name: str, last_name: str, dob: Optional[date] = None
-    ) -> dict:
-        raise NotImplementedError
-
-    def search_docket_number(self, docket_number: str) -> dict:
-        raise NotImplementedError
