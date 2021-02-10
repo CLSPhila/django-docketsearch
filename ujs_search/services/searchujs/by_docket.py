@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Tuple
 import re
 from .UJSSearchFactory import UJSSearchFactory
 from .CPSearch import CPSearch
@@ -46,11 +46,46 @@ def search_by_docket_pre2021(docket_number):
         return [], [str(err)]
 
 
-def search_by_dockets(docket_numbers: List[str]):
+async def search_by_docket_task(docket_number: str) -> Tuple[Dict, List]:
+    """
+    Task for searching ujs portal for a single docket number.
+    """
+    print("looking for docket " + docket_number)
+    # request main page
+
+    # find keys for the next request
+
+    # select docket number
+
+    # post docket number search
+
+    # parse results
+
+    print("  done looking for " + docket_number)
+    return {}, []
+
+
+async def search_by_dockets_task(docket_numbers: List[str]) -> Tuple[Dict, List]:
+    """
+    Async task for searching the ujs portal for a list of docket numbers.
+    """
+    results_with_errs = await asyncio.gather(
+        *map(search_by_docket_task, docket_numbers)
+    )
+    results = []
+    errs = []
+    for res, err in results_with_errs:
+        results.append(res)
+        errs.append(err)
+    return results, errs
+
+
+def search_by_dockets(docket_numbers: List[str]) -> Tuple[Dict, List]:
     """
     Search the CaseSearch UJS portal for docket numbers.
     """
-    pass
+    results, errs = asyncio.run(search_by_dockets_task(docket_numbers))
+    return results, errs
 
 
 """ NB - to implement a search_by_multiple_dockets, using async, we should prob. use a semaphor to limit 

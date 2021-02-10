@@ -6,6 +6,7 @@ import time
 from typing import List, Optional, Union
 from datetime import date
 import logging
+import aiohttp
 
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += "HIGH:!DH:!aNULL"
 logger = logging.getLogger(__name__)
@@ -13,6 +14,10 @@ logger.setLevel = logging.WARNING
 
 
 class UJSSearch:
+    """
+    Class for managing sessions and requests for using the UJS portal.
+    """
+
     def get_nonce(self, resp: Union[requests.Response, str]) -> Optional[str]:
         try:
             txt = resp.text
@@ -86,7 +91,8 @@ class UJSSearch:
 
     def __init__(self):
         self.today = date.today().strftime(r"%m/%d/%Y")
-        self.sess = requests.Session()  # deprecated. need to switch to aio session.
+        self.sess = aiohttp.ClientSession()
+        # self.sess = requests.Session()  # deprecated. need to switch to aio session.
         self.sess.headers.update(self.__headers__)
 
     def search_name(
