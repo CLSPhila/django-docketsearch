@@ -1,1 +1,2 @@
+docketsearch
 ujs_search

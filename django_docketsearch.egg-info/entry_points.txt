@@ -1,0 +1,4 @@
+
+        [console_scripts]
+        ujs=ujs_search.bin.cli:ujs
+    

@@ -1,3 +1,4 @@
+from typing import List
 import re
 from .UJSSearchFactory import UJSSearchFactory
 from .CPSearch import CPSearch
@@ -24,7 +25,7 @@ def which_court(docket_number: str) -> Optional[str]:
     return None
 
 
-def search_by_docket(docket_number):
+def search_by_docket_pre2021(docket_number):
     """
     Search UJS for a single docket using a docket number.
 
@@ -43,6 +44,13 @@ def search_by_docket(docket_number):
         return [asdict(r) for r in results], errs
     except Exception as err:
         return [], [str(err)]
+
+
+def search_by_dockets(docket_numbers: List[str]):
+    """
+    Search the CaseSearch UJS portal for docket numbers.
+    """
+    pass
 
 
 """ NB - to implement a search_by_multiple_dockets, using async, we should prob. use a semaphor to limit 
