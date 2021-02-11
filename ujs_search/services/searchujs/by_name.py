@@ -12,32 +12,6 @@ from dataclasses import asdict
 import asyncio
 
 
-async def search_by_name_task_pre2021(
-    first_name: str, last_name: str, dob: Optional[date] = None, court: str = "both"
-) -> Dict[str, List]:
-    assert court in (["both"] + UJSSearchFactory.COURTS)
-    if court == "both":
-        cp_results, cp_errs = await search_by_name_task(
-            first_name, last_name, dob, court="CP"
-        )
-        mdj_results, mdj_errs = await search_by_name_task(
-            first_name, last_name, dob, court="MDJ"
-        )
-        cp_results.update(mdj_results)
-        errs = cp_errs + mdj_errs
-        return cp_results, errs
-
-    searcher = UJSSearchFactory.use_court(court)
-
-    try:
-        results, errs = await searcher.search_name(first_name, last_name, dob)
-        results = [asdict(r) for r in results]
-    except Exception as err:
-        results = []
-        errs = [str(err)]
-    return {court: results}, errs
-
-
 def make_name_search_request(
     request_verification_token: str,
     first_name: str,

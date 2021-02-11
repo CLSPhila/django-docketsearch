@@ -26,27 +26,6 @@ def which_court(docket_number: str) -> Optional[str]:
     return None
 
 
-def search_by_docket_pre2021(docket_number):
-    """
-    Search UJS for a single docket using a docket number.
-
-
-    """
-    court = which_court(docket_number)
-    if not court:
-        raise ValueError(f"{docket_number}")
-    searcher = UJSSearchFactory.use_court(court)
-    # loop = asyncio.get_event_loop()
-    # results = loop.run_until_complete(searcher.search_docket_number(docket_number))
-    try:
-        results, errs = asyncio.run(
-            searcher.search_docket_number(docket_number.upper())
-        )
-        return [asdict(r) for r in results], errs
-    except Exception as err:
-        return [], [str(err)]
-
-
 def make_docket_search_request(
     request_verification_token: str, docket_number: str
 ) -> Dict[str, str]:
