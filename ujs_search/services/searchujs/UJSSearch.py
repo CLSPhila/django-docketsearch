@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel = logging.WARNING
 
 
+SITE_ROOT = "https://ujsportal.pacourts.us"
+
+
 def parse_row_column(row: "etree", position: int) -> str:
     """
     Get the value of a column in an html table row.
@@ -51,8 +54,8 @@ def parse_row(row: "etree") -> SearchResult:
         participants=parse_row_column(row, 8),
         dob=parse_row_column(row, 9),
         otn=parse_row_column(row, 11),
-        docket_sheet_url=urls[0],
-        summary_url=urls[1],
+        docket_sheet_url=SITE_ROOT + urls[0],
+        summary_url=SITE_ROOT + urls[1],
     )
     return res
 
@@ -61,29 +64,6 @@ class UJSSearch:
     """
     Class for managing sessions and requests for using the UJS portal.
     """
-
-    def get_nonce(self, resp: Union[requests.Response, str]) -> Optional[str]:
-        try:
-            txt = resp.text
-        except:
-            txt = resp
-        match = re.search(r"captchaAnswer' \)\.value = '(?P<nonce>\-?\d+)';", txt)
-        if match:
-            return match.group("nonce")
-        return None
-
-    def get_viewstate(self, resp: Union[requests.Response, str]) -> Optional[str]:
-        try:
-            txt = resp.text
-        except:
-            txt = resp
-        match = re.search(
-            r"input type=\"hidden\" name=\"__VIEWSTATE\" id=\"__VIEWSTATE\" value=\"(?P<viewstate>[\-0-9a-z]+)\"",
-            txt,
-        )
-        if match:
-            return match.group("viewstate")
-        return None
 
     def get_request_verification_token(self, text: str) -> str:
         """
