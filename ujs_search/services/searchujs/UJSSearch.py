@@ -7,10 +7,54 @@ from typing import List, Optional, Union
 from datetime import date
 import logging
 import aiohttp
+from .SearchResult import SearchResult
 
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += "HIGH:!DH:!aNULL"
 logger = logging.getLogger(__name__)
 logger.setLevel = logging.WARNING
+
+
+def parse_row_column(row: "etree", position: int) -> str:
+    """
+    Get the value of a column in an html table row.
+    """
+    path = f"./td[position()='{position}']"
+    result = "".join([res.text for res in row.xpath(path) if res.text is not None])
+    return result
+
+
+def parse_link_column(row: "etree") -> Tuple[str, str]:
+    """
+    Extract the urls to the docket and summary sheet of a
+    search result.
+    """
+    path = "./td[position()='19']//a"
+    results = row.xpath(path)
+    if len(results) != 2:
+        return "", ""
+    return [res.get("href", "") for res in results]
+
+
+def parse_row(row: "etree") -> SearchResult:
+    """
+    Read a single row of a docket search result table.
+
+    """
+    urls = parse_link_column(row)
+
+    res = SearchResult(
+        docket_number=parse_row_column(row, 3),
+        court=parse_row_column(row, 4),
+        caption=parse_row_column(row, 5),
+        case_status=parse_row_column(row, 6),
+        filing_date=parse_row_column(row, 7),
+        participants=parse_row_column(row, 8),
+        dob=parse_row_column(row, 9),
+        otn=parse_row_column(row, 11),
+        docket_sheet_url=urls[0],
+        summary_url=urls[1],
+    )
+    return res
 
 
 class UJSSearch:
@@ -85,6 +129,23 @@ class UJSSearch:
                 txt = await response.text()
                 err = f"POST {url} failed with status {response.status}"
                 return "", [err]
+
+    def parse_results_from_page(
+        self, page: str
+    ) -> Tuple[List[SearchResult], List[str]]:
+        """
+        Extract a list of docket search results from the search results table.
+        """
+        page = lxml.html.document_fromstring(page.strip())
+        results_table = page.xpath("//table[@id='caseSearchResultGrid']/tbody/tr")
+        if len(results_table) == 0:
+            return [], ["Could not find table of search results"]
+        search_results = [
+            item
+            for item in [parse_row(row) for row in results_table]
+            if item is not None
+        ]
+        return search_results, []
 
     __headers__ = {
         "User-Agent": "CleanSlateScreening",

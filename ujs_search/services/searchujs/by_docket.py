@@ -126,8 +126,8 @@ async def search_by_docket_task(docket_number: str) -> Tuple[Dict, List]:
     all_errs = []
     print("looking for docket " + docket_number)
     # request main page
-    sslcontext = ssl.create_default_context()
-    sslcontext.set_ciphers("HIGH:!DH:!aNULL")
+    # sslcontext = ssl.create_default_context()
+    # sslcontext.set_ciphers("HIGH:!DH:!aNULL")
 
     async with aiohttp.ClientSession(headers=UJSSearch.__headers__) as session:
         searcher = UJSSearch(session=session)
