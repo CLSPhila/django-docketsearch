@@ -152,7 +152,8 @@ async def search_by_docket_task(docket_number: str) -> Tuple[Dict, List]:
         all_errs.extend(errs)
 
     # parse results
-    search_results = parse_results_from_page(result_page)
+    search_results, search_errs = parse_results_from_page(result_page)
+    all_errs.extend(search_errs)
     print("  done looking for " + docket_number)
     return search_results, all_errs
 
@@ -163,6 +164,9 @@ async def search_by_dockets_task(
     """
     Async task for searching the ujs portal for a list of docket numbers.
     """
+    # search_by_docket_task returns a tuple of [SearchResult], [errors].
+    # so this async task doing that many times returns with a list of these pairs.
+    # We need to reslice these, to go from [(a,b), (a,b)] to ([a], [b])
     results_with_errs = await asyncio.gather(
         *map(search_by_docket_task, docket_numbers)
     )
@@ -170,7 +174,7 @@ async def search_by_dockets_task(
     errs = []
     for res_list, err in results_with_errs:
         results.extend(res_list)
-        errs.append(err)
+        errs.extend(err)
     return results, errs
 
 
