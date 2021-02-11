@@ -3,7 +3,12 @@ Testing the functions that search for dockets.
 """
 
 import os
-from ujs_search.services.searchujs import search_by_dockets, SearchResult
+from datetime import date
+from ujs_search.services.searchujs import (
+    search_by_dockets,
+    SearchResult,
+    search_by_name,
+)
 
 
 def test_search_by_dockets():
@@ -20,4 +25,14 @@ def test_search_by_dockets():
 
 def test_no_docket_found():
     results, errs = search_by_dockets(["CP-12345"])
+    assert len(results) == 0
+
+
+def test_search_by_name():
+    results, errs = search_by_name(os.environ["TEST_FNAME"], os.environ["TEST_LNAME"])
+    assert len(results) == int(os.environ["TEST_NAME_RESULTCOUNT"])
+
+
+def test_search_by_name_failure():
+    results, errs = search_by_name("Googly", "Bear", date.today())
     assert len(results) == 0
