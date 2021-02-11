@@ -15,7 +15,6 @@ class NameSearchSerializer(S.Serializer):
     dob = S.DateField(
         required=False, default=None, input_formats=["iso-8601", r"%m/%d/%Y"]
     )
-    court = S.RegexField(court_pattern, required=False)
 
 
 class DocketSearchSerializer(S.Serializer):
