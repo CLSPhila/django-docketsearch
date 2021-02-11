@@ -18,3 +18,4 @@ class SearchResult:
     otn: str
     dob: str
     participants: str
+    county: str

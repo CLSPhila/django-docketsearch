@@ -53,7 +53,8 @@ def parse_row(row: "etree") -> SearchResult:
         filing_date=parse_row_column(row, 7),
         participants=parse_row_column(row, 8),
         dob=parse_row_column(row, 9),
-        otn=parse_row_column(row, 11),
+        county=parse_row_column(row, 10),
+        otn=parse_row_column(row, 12),
         docket_sheet_url=SITE_ROOT + urls[0],
         summary_url=SITE_ROOT + urls[1],
     )
