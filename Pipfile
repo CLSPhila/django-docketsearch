@@ -11,7 +11,7 @@ pytest-django = "==3.7.0"
 pytest-pythonpath = "==0.7.3"
 
 [packages]
-lxml = "==4.4.1"
+lxml = "==4.6.2"
 requests = "==2.22.0"
 django = "==2.2.18"
 djangorestframework = "==3.10.3"
