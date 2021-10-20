@@ -3,15 +3,15 @@ import requests
 import lxml.html
 import re
 import time
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 from datetime import date
 import logging
 import aiohttp
 from .SearchResult import SearchResult
 
+
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += "HIGH:!DH:!aNULL"
 logger = logging.getLogger(__name__)
-logger.setLevel = logging.WARNING
 
 
 SITE_ROOT = "https://ujsportal.pacourts.us"

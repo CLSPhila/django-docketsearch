@@ -3,27 +3,11 @@ from dataclasses import asdict
 import re
 import asyncio
 import aiohttp
-import ssl
-import lxml.html
 from .UJSSearch import UJSSearch
 from .SearchResult import SearchResult
+import logging
 
-
-def which_court(docket_number: str) -> Optional[str]:
-    """
-    Given a docket number, determine if is is a CP or MDJ docket number.
-
-    If the docket number is in the wrong format, return None.
-    """
-
-    cp_patt = re.compile(CPSearch.DOCKET_NUMBER_REGEX, re.IGNORECASE)
-    md_patt = re.compile(MDJSearch.DOCKET_NUMBER_REGEX, re.IGNORECASE)
-
-    if cp_patt.match(docket_number):
-        return UJSSearchFactory.CP
-    if md_patt.match(docket_number):
-        return UJSSearchFactory.MDJ
-    return None
+logger = logging.getLogger(__name__)
 
 
 def make_docket_search_request(
@@ -44,7 +28,7 @@ async def search_by_docket_task(docket_number: str) -> Tuple[Dict, List]:
     Task for searching ujs portal for a single docket number.
     """
     all_errs = []
-    print("looking for docket " + docket_number)
+    logger.debug("looking for docket " + docket_number)
     # request main page
     # sslcontext = ssl.create_default_context()
     # sslcontext.set_ciphers("HIGH:!DH:!aNULL")
@@ -74,7 +58,7 @@ async def search_by_docket_task(docket_number: str) -> Tuple[Dict, List]:
     # parse results
     search_results, search_errs = searcher.parse_results_from_page(result_page)
     all_errs.extend(search_errs)
-    print("  done looking for " + docket_number)
+    logger.debug("  done looking for " + docket_number)
     return search_results, all_errs
 
 

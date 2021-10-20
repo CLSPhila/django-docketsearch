@@ -51,7 +51,7 @@ async def search_by_name_task(
         A list of error messages.
     """
     all_errs = []
-    print("searching for dockets related to " + first_name)
+    logger.debug("searching for dockets related to %s", first_name)
 
     async with aiohttp.ClientSession(headers=UJSSearch.__headers__) as session:
         searcher = UJSSearch(session=session)
@@ -79,7 +79,7 @@ async def search_by_name_task(
     # parse results
     search_results, search_errs = searcher.parse_results_from_page(result_page)
     all_errs.extend(search_errs)
-    print("  done looking for " + last_name)
+    logger.debug("  done looking for dockets related to %s", first_name)
     return search_results, all_errs
 
 
