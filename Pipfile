@@ -11,12 +11,12 @@ pytest-django = "==3.7.0"
 pytest-pythonpath = "==0.7.3"
 
 [packages]
-lxml = "==4.4.1"
+lxml = "==4.6.3"
 requests = "==2.22.0"
-django = "==2.2.18"
-djangorestframework = "==3.10.3"
+django = "==2.2.24"
+djangorestframework = "==3.11.2"
 django-cors-headers = "==3.2.0"
-aiohttp = "==3.7.2"
+aiohttp = "==3.7.4"
 click = "*"
 django-docketsearch = {editable = true,path = "."}
 brotli = "==1.0.9"
