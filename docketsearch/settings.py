@@ -25,6 +25,17 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", False) == "True"
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {"handlers": ["console"], "level": "DEBUG" if DEBUG else "WARNING"},
+}
+
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split()
 
 
