@@ -6,3 +6,4 @@ __pycache__
 dist
 .env
 *.sqlite3
+build

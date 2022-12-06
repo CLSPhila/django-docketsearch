@@ -1,4 +1,5 @@
 MANIFEST.in
+pyproject.toml
 setup.cfg
 setup.py
 django_docketsearch.egg-info/PKG-INFO
@@ -21,11 +22,8 @@ ujs_search/views.py
 ujs_search/migrations/__init__.py
 ujs_search/reference/county_lookup.csv
 ujs_search/services/__init__.py
-ujs_search/services/searchujs/CPSearch.py
-ujs_search/services/searchujs/MDJSearch.py
 ujs_search/services/searchujs/SearchResult.py
 ujs_search/services/searchujs/UJSSearch.py
-ujs_search/services/searchujs/UJSSearchFactory.py
 ujs_search/services/searchujs/__init__.py
 ujs_search/services/searchujs/by_docket.py
 ujs_search/services/searchujs/by_name.py
