@@ -10,7 +10,7 @@ import aiohttp
 from .SearchResult import SearchResult
 
 
-requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += "HIGH:!DH:!aNULL"
+#requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += "HIGH:!DH:!aNULL"
 logger = logging.getLogger(__name__)
 
 
