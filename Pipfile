@@ -6,7 +6,7 @@ name = "pypi"
 [dev-packages]
 pytest = "==5.2.3"
 mypy = "==0.740"
-black = "==19.10b0"
+black = "==24.3.0"
 pytest-django = "==3.7.0"
 pytest-pythonpath = "==0.7.3"
 
