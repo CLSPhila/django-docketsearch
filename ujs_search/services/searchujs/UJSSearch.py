@@ -83,6 +83,8 @@ class UJSSearch:
         async method to fetch a url
         """
         async with self.sess.get(url) as response:
+            print('UJSSearch FETCH')
+            print(response)
             if response.status == 200:
                 return (await response.text(), [])
             else:
@@ -100,6 +102,8 @@ class UJSSearch:
         else:
             headers_to_send = self.__headers__
         async with self.sess.post(url, data=data, headers=headers_to_send) as response:
+            print('UJSSearch POST')
+            print(response)
             if response.status == 200:
                 return (await response.text(), [])
             else:
