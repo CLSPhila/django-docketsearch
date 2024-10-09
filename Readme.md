@@ -1,5 +1,7 @@
 # django-docketsearch
 
+[DEPRECATED]
+
 A Django Rest Framework app that adds endpoints useful for searching the PA UJS portal for public records.
 
 ## Endpoints
