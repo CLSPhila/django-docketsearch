@@ -10,7 +10,7 @@ import aiohttp
 from .SearchResult import SearchResult
 
 
-#requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += "HIGH:!DH:!aNULL"
+# requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += "HIGH:!DH:!aNULL"
 logger = logging.getLogger(__name__)
 
 
@@ -33,9 +33,12 @@ def parse_link_column(row: "etree") -> Tuple[str, str]:
     """
     path = "./td[position()='19']//a"
     results = row.xpath(path)
-    if len(results) != 2:
+
+    links = set([res.get("href", "") for res in results])
+
+    if len(links) != 2:
         return "", ""
-    return [res.get("href", "") for res in results]
+    return tuple(links)
 
 
 def parse_row(row: "etree") -> SearchResult:
