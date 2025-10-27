@@ -34,11 +34,14 @@ def parse_link_column(row: "etree") -> Tuple[str, str]:
     path = "./td[position()='19']//a"
     results = row.xpath(path)
 
-    links = set([res.get("href", "") for res in results])
-
+    links = []
+    for res in results:
+        href = res.get("href", "")
+        if href not in links:
+            links.append(href)
     if len(links) != 2:
-        return "", ""
-    return tuple(links)
+        return ["", ""]
+    return links
 
 
 def parse_row(row: "etree") -> SearchResult:
